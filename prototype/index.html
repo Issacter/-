@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>导航页原型 · 交互点阵 + Focus Cards</title>
+
+<!--
+  ============================================================================
+  导航页改造原型（单文件，双击即可打开）
+  ----------------------------------------------------------------------------
+  设计来源与对应关系：
+    · 背景      → React Bits「Dot Field」思路：交互点阵 + 光标隆起 + 点击脉冲
+    · 中心枢纽  → Aceternity UI「Electric Border」思路：单强调色驱动的电弧描边
+    · 角色入口  → Aceternity UI「Focus Cards」思路：悬停聚焦，同排其余压暗
+    · 角色名    → React Bits「Shiny Text」思路：一道光扫过，克制不喧闹
+    · 进度芯片  → React Bits「Call Chip」思路：把状态变化可视化（扫光→就绪/失败）
+    · 进页转场  → 保留本站原有的「碎片下落」，改用卡片自身图像做碎片
+    · 微交互    → 全部 150~300ms、弹簧缓动，不用线性
+  兼容性说明：
+    · 本文件不依赖任何框架与外部字体，可离线打开
+    · :has() 不可用时由 JS 补 .is-dim 类，效果一致
+  ============================================================================
+-->
+
+<style>
+/* ==========================================================================
+   1. 设计变量（全站唯一真相来源）
+   ========================================================================== */
+:root{
+  /* 底色三层 */
+  --bg-0:#0B0D10; --bg-1:#12151A; --bg-2:#1A1F26;
+  /* 文字三级 */
+  --ink-1:#E8ECF2; --ink-2:#9AA3B2; --ink-3:#5A6472;
+  /* 全站强调色：本页为「信号红」 */
+  --accent:#FF3E3E;
+  /* 角色强调色（每个页面只允许出现一个） */
+  --c-lucia:#6FD3FF; --c-alpha:#FF0F7B; --c-liv:#FFC9DC; --c-music:#FF3E3E;
+  /* 描边 / 圆角 */
+  --line:rgba(255,255,255,.08);
+  --line-strong:rgba(255,255,255,.16);
+  --r-card:16px; --r-pill:999px;
+  /* 动效时长 */
+  --dur-fast:150ms; --dur-base:300ms; --dur-slow:600ms;
+  /* 统一弹簧缓动（不是线性！） */
+  --ease-spring:cubic-bezier(.22,1.36,.36,1);
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  /* 排版 */
+  --f-cn:"Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+  --f-en:"Rajdhani","Bahnschrift","DIN Alternate",system-ui,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg-0); color:var(--ink-1);
+  font-family:var(--f-cn); overflow-x:hidden;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+::selection{background:var(--accent);color:#fff}
+
+/* ==========================================================================
+   2. 背景层：交互点阵 + 暗角 + 胶片颗粒
+   ========================================================================== */
+#dots{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+.bg-atmos{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(1100px 620px at 50% 46%,rgba(255,62,62,.07),transparent 62%),
+    radial-gradient(900px 520px at 12% 8%,rgba(111,211,255,.05),transparent 60%),
+    radial-gradient(900px 520px at 88% 92%,rgba(255,15,123,.05),transparent 60%),
+    radial-gradient(120% 120% at 50% 50%,transparent 52%,rgba(0,0,0,.62) 100%);
+}
+.bg-grain{
+  position:fixed;inset:-50%;z-index:2;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  animation:grain 6s steps(6) infinite;
+}
+@keyframes grain{
+  0%{transform:translate(0,0)}    20%{transform:translate(-3%,2%)}
+  40%{transform:translate(2%,-3%)} 60%{transform:translate(-2%,-2%)}
+  80%{transform:translate(3%,1%)}  100%{transform:translate(0,0)}
+}
+/* 扫描线：全息终端感，极轻 */
+.bg-scan{
+  position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.022) 0 1px,transparent 1px 3px);
+  mix-blend-mode:overlay;
+}
+
+/* ==========================================================================
+   3. 页面骨架
+   ========================================================================== */
+.shell{
+  position:relative;z-index:3;min-height:100vh;
+  display:flex;flex-direction:column;
+  padding:clamp(16px,2.6vw,34px);
+  gap:clamp(14px,2.2vw,26px);
+}
+
+/* ---- 顶栏 ---- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding-bottom:14px;border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand .mark{
+  width:30px;height:30px;flex:none;border:1.5px solid var(--accent);
+  border-radius:8px;display:grid;place-items:center;
+  font:700 14px/1 var(--f-en);color:var(--accent);
+  box-shadow:0 0 18px rgba(255,62,62,.35),inset 0 0 12px rgba(255,62,62,.15);
+}
+.brand .txt{min-width:0}
+.brand b{
+  display:block;font:700 clamp(12px,1.15vw,14px)/1.2 var(--f-en);
+  letter-spacing:.22em;text-transform:uppercase;white-space:nowrap;
+}
+.brand span{
+  display:block;font-size:11px;color:var(--ink-3);letter-spacing:.16em;
+  margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.badge{
+  flex:none;display:inline-flex;align-items:center;gap:7px;
+  padding:6px 12px;border:1px solid var(--line);border-radius:var(--r-pill);
+  font-size:11px;color:var(--ink-2);letter-spacing:.12em;
+}
+.badge i{
+  width:6px;height:6px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 10px var(--accent);animation:breathe 2.4s var(--ease-out) infinite;
+}
+@keyframes breathe{0%,100%{opacity:.45;transform:scale(.86)}50%{opacity:1;transform:scale(1.1)}}
+
+/* ---- 主体舞台 ----
+   版面：左列枢纽（跨两行），右侧 2×2 角色卡（Aceternity「Focus Cards」）。
+   全部用 grid + clamp，没有任何固定像素坐标——窄屏不会再有点不到的入口。
+   注意：hubspan 是独立区域名，不能写成 "hub hub hub"（同名相邻格是非法语法，
+   整条 grid-template-areas 会被浏览器丢弃）。 */
+.stage{
+  flex:1;display:grid;gap:clamp(12px,1.5vw,20px);
+  grid-template-columns:clamp(200px,20%,300px) minmax(0,1fr) minmax(0,1fr);
+  grid-template-rows:auto auto;
+  grid-template-areas:
+    "hubspan shift deck"
+    "hubspan core  echo";
+  align-content:center;
+}
+.card{min-height:clamp(178px,23vh,246px)}
+.card{min-height:clamp(168px,20vh,224px)}
+
+/* ---- 中心枢纽：占满左列两行 ---- */
+.hub{
+  grid-area:hubspan;position:relative;display:grid;place-items:center;
+  min-height:clamp(360px,54vh,560px);
+  --electric-border-color:#FF3E3E; --eb-border-width:2px;
+}
+.hub.focused{--electric-border-color:#8FE9FF}
+.hub-ring{
+  position:absolute;width:clamp(180px,19vw,262px);aspect-ratio:1;border-radius:50%;
+  border:1px dashed var(--line-strong);animation:spin 46s linear infinite;
+  will-change:transform;
+}
+.hub-ring::after{
+  content:"";position:absolute;top:-3px;left:50%;width:6px;height:6px;border-radius:50%;
+  background:var(--electric-border-color);box-shadow:0 0 12px var(--electric-border-color);
+  transition:background var(--dur-base) var(--ease-out);
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hub-core{
+  position:relative;width:clamp(148px,15.5vw,214px);aspect-ratio:1;border-radius:50%;
+  overflow:hidden;isolation:isolate;background:#05070A;
+  transition:transform var(--dur-base) var(--ease-spring);
+}
+.hub:hover .hub-core{transform:scale(1.045)}
+.hub-core video{width:100%;height:100%;object-fit:cover;opacity:.42;filter:saturate(.72) contrast(1.06)}
+.hub-core .veil{
+  position:absolute;inset:0;border-radius:50%;
+  background:
+    radial-gradient(60% 60% at 50% 42%,rgba(255,62,62,.18),transparent 70%),
+    linear-gradient(180deg,rgba(11,13,16,.34),rgba(11,13,16,.86));
+}
+/* 电动描边三层（Aceternity「Electric Border」做法）：描边 + 近距辉光 + 远距辉光 */
+.eb{position:absolute;inset:0;border-radius:inherit;pointer-events:none}
+.eb i{
+  position:absolute;inset:0;border-radius:inherit;box-sizing:border-box;
+  border:var(--eb-border-width) solid var(--electric-border-color);
+  transition:border-color var(--dur-base) var(--ease-out);
+}
+.eb i:nth-child(1){filter:url(#arc);animation:arc-pulse 2.6s ease-in-out infinite}
+.eb i:nth-child(2){border-color:color-mix(in oklab,var(--electric-border-color) 58%,transparent);filter:blur(1.4px);opacity:.7}
+.eb i:nth-child(3){border-color:var(--electric-border-color);filter:blur(6px);opacity:.42}
+.eb i:nth-child(4){
+  border:0;transform:scale(1.16);filter:blur(26px);opacity:.26;
+  background:linear-gradient(-30deg,var(--electric-border-color),transparent 58%,var(--electric-border-color));
+  transition:background var(--dur-base) var(--ease-out);
+}
+@keyframes arc-pulse{0%,100%{opacity:.78}50%{opacity:1}}
+
+.hub-label{
+  position:absolute;bottom:2%;left:50%;transform:translateX(-50%);
+  text-align:center;white-space:nowrap;pointer-events:none;
+}
+.hub-label b{
+  display:block;font:700 clamp(15px,1.6vw,21px)/1.1 var(--f-en);
+  letter-spacing:.34em;text-transform:uppercase;
+}
+.hub-label b::after{
+  content:"";display:block;height:1px;margin-top:9px;
+  background:linear-gradient(90deg,transparent,var(--electric-border-color),transparent);
+  opacity:.7;transition:background var(--dur-base) var(--ease-out);
+}
+.hub-label span{
+  display:block;margin-top:9px;font-size:11px;color:var(--ink-3);letter-spacing:.2em;
+}
+
+/* ==========================================================================
+   4. 角色入口卡（Focus Cards）
+   ========================================================================== */
+.card{
+  position:relative;display:block;overflow:hidden;
+  border-radius:var(--r-card);border:1px solid var(--line);
+  background:var(--bg-1);isolation:isolate;outline:none;
+  transition:
+    transform var(--dur-slow) var(--ease-spring),
+    opacity var(--dur-base) var(--ease-out),
+    filter var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.card-shift{grid-area:shift} .card-deck{grid-area:deck}
+.card-core{grid-area:core}   .card-echo{grid-area:echo}
+
+.card img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  object-position:var(--focus,50% 42%);
+  filter:saturate(.9) contrast(1.04) brightness(.82);
+  transition:transform var(--dur-slow) var(--ease-spring),filter var(--dur-base) var(--ease-out);
+  will-change:transform;
+}
+/* 遮罩：常态偏暗保证文字可读，悬停揭开。
+   两个坑都避开了：
+   1) 底部渐变上限 .88——再深就把画面吃掉；
+   2) 径向渐变要"矮而淡"——卡片窄而高时它只占底部一角，
+      但卡片宽而矮（手机）时同样参数会糊满整张卡，所以半径压到 70% 且降到 18%。 */
+.card .scrim{
+  position:absolute;inset:0;z-index:2;
+  background:
+    linear-gradient(180deg,rgba(11,13,16,.14) 0%,rgba(11,13,16,.20) 38%,rgba(11,13,16,.54) 74%,rgba(11,13,16,.88) 100%),
+    radial-gradient(96% 70% at 50% 112%,color-mix(in oklab,var(--tone) 18%,transparent),transparent 58%);
+  transition:opacity var(--dur-base) var(--ease-out);
+}
+/* 斜切角 + 扫描线装饰 */
+.card .deco{
+  position:absolute;inset:0;z-index:3;pointer-events:none;opacity:.5;
+  background:
+    linear-gradient(135deg,transparent 0 78%,color-mix(in oklab,var(--tone) 30%,transparent) 78% 79%,transparent 79%),
+    repeating-linear-gradient(180deg,rgba(255,255,255,.05) 0 1px,transparent 1px 4px);
+  background-size:100% 100%,100% 100%;
+  mix-blend-mode:screen;
+}
+/* 悬停装饰光晕 */
+.card .glow{
+  position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;
+  background:radial-gradient(320px 220px at var(--mx,50%) var(--my,50%),
+    color-mix(in oklab,var(--tone) 26%,transparent),transparent 62%);
+  transition:opacity var(--dur-base) var(--ease-out);
+}
+
+/* 文字保护层：悬停时图片被提亮，底部再加一道渐变保证标题始终读得清
+   （这里刻意不用 mix-blend-mode:screen，否则暗底文字会被"洗白"） */
+.card .textshield{
+  position:absolute;inset:auto 0 0 0;height:66%;z-index:3;pointer-events:none;
+  opacity:0;transition:opacity var(--dur-base) var(--ease-out);
+  background:linear-gradient(180deg,transparent,rgba(6,8,11,.62) 46%,rgba(6,8,11,.94));
+}
+
+.card .body{
+  position:absolute;inset:auto 0 0 0;z-index:4;
+  padding:clamp(13px,1.35vw,20px);
+  display:flex;flex-direction:column;gap:7px;
+}
+.card .body::before{
+  content:"";position:absolute;inset:12% 2% 0 2%;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(5,7,10,.66));
+}
+.card .meta{display:flex;align-items:center;gap:9px;font-size:11px;color:var(--ink-2);letter-spacing:.14em}
+.card .meta em{
+  font-style:normal;padding:2px 8px;border-radius:var(--r-pill);
+  border:1px solid color-mix(in oklab,var(--tone) 42%,transparent);
+  color:var(--tone);background:color-mix(in oklab,var(--tone) 10%,transparent);
+}
+.card h2{
+  margin:0;font-size:clamp(17px,1.65vw,24px);font-weight:700;letter-spacing:.03em;
+  display:flex;align-items:baseline;gap:10px;
+}
+.card h2 small{
+  font:600 .58em/1 var(--f-en);letter-spacing:.2em;text-transform:uppercase;
+  color:var(--ink-2);transition:color var(--dur-base) var(--ease-out);
+}
+/* Shiny Text：一道光扫过（克制版，不是整个在发光） */
+.card h2 span{
+  background-image:linear-gradient(100deg,
+    var(--ink-1) 0%,var(--ink-1) 38%,
+    color-mix(in oklab,var(--tone) 85%,#fff) 50%,
+    var(--ink-1) 62%,var(--ink-1) 100%);
+  background-size:260% 100%;background-position:180% 0;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  transition:background-position var(--dur-slow) var(--ease-out);
+}
+.card p{
+  margin:0;font-size:clamp(11px,1.02vw,13px);line-height:1.66;color:var(--ink-2);
+  max-width:44ch;
+}
+/* 进入箭头 */
+.card .go{
+  position:absolute;right:clamp(13px,1.35vw,20px);bottom:clamp(13px,1.35vw,20px);z-index:5;
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  border:1px solid color-mix(in oklab,var(--tone) 46%,transparent);
+  color:var(--tone);background:color-mix(in oklab,var(--tone) 10%,rgba(0,0,0,.4));
+  opacity:0;transform:translateY(6px) scale(.9);
+  transition:opacity var(--dur-base) var(--ease-out),transform var(--dur-base) var(--ease-spring);
+}
+.card .go svg{width:14px;height:14px}
+
+/* ---- 悬停聚焦态 ----
+   支持 :has() 时由 CSS 自己判断；不支持则由 JS 补 .glow-on */
+.stage.filtering .card{opacity:.42;filter:saturate(.35) brightness(.6)}
+.stage.filtering:has(.card:hover) .card:hover,
+.stage.filtering:has(.card:focus-visible) .card:focus-visible,
+.stage.filtering .card.glow-on{
+  opacity:1;filter:none;
+}
+.card:hover,.card:focus-visible{
+  transform:translateY(-8px) scale(1.025);
+  border-color:color-mix(in oklab,var(--tone) 55%,transparent);
+  box-shadow:
+    0 26px 60px -22px color-mix(in oklab,var(--tone) 55%,transparent),
+    0 0 0 1px color-mix(in oklab,var(--tone) 26%,transparent) inset;
+}
+.card:hover img,.card:focus-visible img{transform:scale(1.07);filter:saturate(1.03) contrast(1.06) brightness(.95)}
+/* 悬停时遮罩不完全揭开：留一半保证文字对比度，画面依旧比常态明亮 */
+.card:hover .scrim,.card:focus-visible .scrim{opacity:.55}
+.card:hover .textshield,.card:focus-visible .textshield{opacity:1}
+.card:hover .glow,.card:focus-visible .glow{opacity:.9}
+.card:hover .go,.card:focus-visible .go{opacity:1;transform:translateY(0) scale(1)}
+.card:hover h2 small,.card:focus-visible h2 small{color:var(--tone)}
+.card:hover h2 span,.card:focus-visible h2 span{background-position:-60% 0}
+.card:focus-visible{outline:2px solid var(--tone);outline-offset:3px}
+.card .go:hover{background:color-mix(in oklab,var(--tone) 26%,rgba(0,0,0,.5))}
+
+/* ==========================================================================
+   5. 状态芯片（把状态变化可视化，React Bits「Call Chip」思路）
+   ========================================================================== */
+.status{
+  position:fixed;left:50%;bottom:clamp(14px,3vh,26px);transform:translateX(-50%);
+  z-index:60;display:flex;align-items:center;gap:10px;
+  padding:9px 16px;border-radius:var(--r-pill);
+  border:1px solid var(--line);background:rgba(11,13,16,.72);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  font-size:12px;color:var(--ink-2);letter-spacing:.1em;
+  box-shadow:0 14px 40px -18px rgba(0,0,0,.9);
+  transition:color var(--dur-base) var(--ease-out),border-color var(--dur-base) var(--ease-out);
+  max-width:calc(100vw - 32px);
+}
+.status .dot{
+  width:6px;height:6px;flex:none;border-radius:50%;background:var(--ink-3);
+  transition:background var(--dur-base) var(--ease-out),box-shadow var(--dur-base) var(--ease-out);
+}
+.status[data-state="ready"]{color:var(--ink-1);border-color:var(--line-strong)}
+.status[data-state="ready"] .dot{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.status[data-state="busy"] .dot{background:var(--c-lucia);box-shadow:0 0 10px var(--c-lucia);animation:breathe 1s linear infinite}
+.status[data-state="error"]{color:#FFB4B4;border-color:rgba(255,62,62,.5)}
+.status[data-state="error"] .dot{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+.status[data-state="error"] .fix{
+  display:inline-flex;align-items:center;gap:6px;margin-left:4px;padding:4px 11px;
+  border-radius:var(--r-pill);border:1px solid rgba(255,62,62,.5);
+  background:rgba(255,62,62,.14);color:#FFD9D9;cursor:pointer;
+  font:inherit;letter-spacing:.1em;
+  transition:background var(--dur-fast) var(--ease-out),transform var(--dur-fast) var(--ease-spring);
+}
+.status .fix{display:none}
+.status[data-state="error"] .fix{display:inline-flex}
+.status .fix:hover{background:rgba(255,62,62,.3);transform:translateY(-1px)}
+/* 忙碌扫光 */
+.status[data-state="busy"]::after{
+  content:"";position:absolute;inset:0;border-radius:inherit;overflow:hidden;
+  background:linear-gradient(100deg,transparent 20%,rgba(111,211,255,.25) 50%,transparent 80%);
+  background-size:220% 100%;animation:sweep 1.1s linear infinite;
+}
+@keyframes sweep{from{background-position:120% 0}to{background-position:-120% 0}}
+
+/* ==========================================================================
+   6. 进页转场：碎片下落（保留本站原有语言，碎片改用卡片自身图像）
+   ========================================================================== */
+#shards{position:fixed;inset:0;z-index:80;pointer-events:none;overflow:hidden;perspective:1200px}
+.shard{
+  position:absolute;overflow:hidden;border-radius:var(--r-card);
+  will-change:transform,opacity;
+  animation:shatter 1.05s var(--ease-out) forwards var(--d,0s);
+}
+.shard img{width:100%;height:100%;object-fit:cover;filter:brightness(.7) saturate(.9)}
+.shard::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(11,13,16,.15),rgba(11,13,16,.7));
+}
+@keyframes shatter{
+  0%{transform:translate3d(0,0,0) rotate3d(0,0,0,0) scale(1);opacity:1}
+  100%{
+    transform:translate3d(var(--tx),var(--ty),var(--tz))
+              rotate3d(var(--rx),var(--ry),var(--rz),var(--deg)) scale(.82);
+    opacity:0;
+  }
+}
+#veil{
+  position:fixed;inset:0;z-index:79;pointer-events:none;
+  background:radial-gradient(120% 120% at 50% 50%,rgba(11,13,16,.55),rgba(11,13,16,.96));
+  opacity:0;transition:opacity var(--dur-slow) var(--ease-out);
+}
+#veil.on{opacity:1}
+/* 预加载目标页用 iframe（真正跳转前先把页面拉起来，减少白屏） */
+#preload{
+  position:fixed;inset:0;width:100%;height:100%;border:0;z-index:1;
+  opacity:0;pointer-events:none;
+}
+
+/* ==========================================================================
+   7. 响应式（彻底不依赖固定像素坐标）
+   ========================================================================== */
+@media (max-width:1080px){
+  .stage{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-rows:auto auto auto;
+    grid-template-areas:
+      "hubspan hubspan"
+      "shift   deck"
+      "core    echo";
+    align-content:start;
+  }
+  .hub{min-height:clamp(280px,36vh,380px)}
+  .card p{display:none}
+}
+@media (max-width:640px){
+  .shell{padding:14px;gap:10px}
+  .brand span{display:none}
+  .stage{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"hubspan" "shift" "deck" "core" "echo";
+    gap:10px;
+    align-content:start;
+  }
+  .hub{min-height:230px}
+  .card{min-height:172px}
+  .card h2{font-size:18px}
+  .card .go{opacity:1;transform:none}
+  .status{font-size:11px;padding:8px 13px}
+}
+/* 横屏矮屏：收紧中心，避免第一屏只看到枢纽 */
+@media (max-height:620px) and (min-width:641px){
+  .hub{min-height:150px}
+  .hub-core{width:128px}
+  .hub-ring{width:158px}
+}
+
+/* ==========================================================================
+   8. 无障碍：尊重「减少动态效果」
+   ========================================================================== */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .bg-grain{display:none}
+  .shard{animation:none;opacity:0}
+}
+</style>
+</head>
+<body>
+
+<!-- 交互点阵背景 -->
+<canvas id="dots" aria-hidden="true"></canvas>
+<div class="bg-atmos" aria-hidden="true"></div>
+<div class="bg-scan" aria-hidden="true"></div>
+<div class="bg-grain" aria-hidden="true"></div>
+
+<!-- 电弧滤镜（Electric Border 用） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="arc">
+      <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="8" seed="3" result="n1"/>
+      <feOffset in="n1" dy="0" result="o1"><animate attributeName="dy" values="700;0" dur="7s" repeatCount="indefinite"/></feOffset>
+      <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="8" seed="4" result="n2"/>
+      <feOffset in="n2" dy="0" result="o2"><animate attributeName="dy" values="0;-700" dur="7s" repeatCount="indefinite"/></feOffset>
+      <feComposite in="o1" in2="o2" result="p1"/>
+      <feBlend in="p1" in2="p1" mode="color-dodge" result="mixed"/>
+      <feDisplacementMap in="SourceGraphic" in2="mixed" scale="16"
+        xChannelSelector="R" yChannelSelector="B"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- 预加载 iframe 占位（转场时复用） -->
+<iframe id="preload" title="页面预加载" tabindex="-1" aria-hidden="true"></iframe>
+<div id="veil" aria-hidden="true"></div>
+<div id="shards" aria-hidden="true"></div>
+
+<div class="shell">
+
+  <!-- 顶栏 -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">GR</div>
+      <div class="txt">
+        <b>Punishing · Gray Raven</b>
+        <span>角色档案终端　/　导航页改造原型</span>
+      </div>
+    </div>
+    <div class="badge"><i></i>原型预览</div>
+  </header>
+
+  <!-- 舞台：中心枢纽 + 四个角色入口 -->
+  <main class="stage" id="stage">
+
+    <!-- 中心枢纽 -->
+    <div class="hub" id="hub">
+      <div class="hub-ring" aria-hidden="true"></div>
+      <div class="hub-core">
+        <video src="../../导航/视频/3545227430/背景.mp4"
+               autoplay muted loop playsinline preload="metadata"
+               aria-hidden="true"></video>
+        <div class="veil"></div>
+        <div class="eb" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="hub-label">
+        <b>Select Unit</b>
+        <span>选择角色档案　·　共 4 份</span>
+      </div>
+    </div>
+
+    <!-- 露西亚 -->
+    <a class="card card-shift" href="../../露西亚/露西亚简介.html"
+       style="--tone:var(--c-lucia);--focus:50% 34%">
+      <img src="../../露西亚/图片/背景.jpg" alt="露西亚档案背景" loading="eager" decoding="async">
+      <span class="scrim" aria-hidden="true"></span>
+      <span class="glow" aria-hidden="true"></span>
+      <span class="textshield" aria-hidden="true"></span>
+      <span class="deco" aria-hidden="true"></span>
+      <span class="body">
+        <span class="meta"><em>灰鸦小队</em><span>LUCIA</span></span>
+        <h2><span>露西亚</span><small>Lucia</small></h2>
+        <p>灰鸦小队队长。以鸦羽机体重生后，学会了温柔待人——而爆裂的刀锋从未迟疑。</p>
+      </span>
+      <span class="go" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+    <!-- 阿尔法 -->
+    <a class="card card-deck" href="../../阿尔法/阿尔法.html"
+       style="--tone:var(--c-alpha);--focus:50% 30%">
+      <img src="../../阿尔法/深红囚影/同人/4decb6c19e164e928199814cea73f80520250212.jpg" alt="阿尔法档案背景" loading="lazy" decoding="async">
+      <span class="scrim" aria-hidden="true"></span>
+      <span class="glow" aria-hidden="true"></span>
+      <span class="textshield" aria-hidden="true"></span>
+      <span class="deco" aria-hidden="true"></span>
+      <span class="body">
+        <span class="meta"><em>升格者</em><span>ALPHA</span></span>
+        <h2><span>阿尔法</span><small>Alpha</small></h2>
+        <p>本体露西亚。指挥的露西亚是空中花园复制的——而她本人，走在另一条路上。</p>
+      </span>
+      <span class="go" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+    <!-- 丽芙 -->
+    <a class="card card-core" href="../../丽芙/丽芙.html"
+       style="--tone:var(--c-liv);--focus:50% 40%">
+      <img src="../../丽芙/Picture/背景/官图1.png" alt="丽芙档案背景" loading="lazy" decoding="async">
+      <span class="scrim" aria-hidden="true"></span>
+      <span class="glow" aria-hidden="true"></span>
+      <span class="textshield" aria-hidden="true"></span>
+      <span class="deco" aria-hidden="true"></span>
+      <span class="body">
+        <span class="meta"><em>辅助型</em><span>LIV</span></span>
+        <h2><span>丽芙</span><small>Liv</small></h2>
+        <p>淡然绽放于战场的纯白之花。以分析能力与压倒性火力，构成团队的「盾」。</p>
+      </span>
+      <span class="go" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+    <!-- 音乐播放 -->
+    <a class="card card-echo" href="../../音乐播放功能/Music.html" target="_blank" rel="noopener"
+       style="--tone:var(--c-music);--focus:50% 50%">
+      <img src="../../音乐播放功能/素材/封面.jpg" alt="音乐播放页封面" loading="lazy" decoding="async">
+      <span class="scrim" aria-hidden="true"></span>
+      <span class="glow" aria-hidden="true"></span>
+      <span class="textshield" aria-hidden="true"></span>
+      <span class="deco" aria-hidden="true"></span>
+      <span class="body">
+        <span class="meta"><em>12 首</em><span>MUSIC</span></span>
+        <h2><span>音乐播放</span><small>Player</small></h2>
+        <p>夤夜渡、鸣响、Hikari……12 首战双原声，新标签页打开。</p>
+      </span>
+      <span class="go" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>
+      </span>
+    </a>
+
+  </main>
+</div>
+
+<!-- 状态芯片 -->
+<div class="status" id="status" data-state="ready" role="status" aria-live="polite">
+  <span class="dot" aria-hidden="true"></span>
+  <span id="status-text">移动光标观察点阵　·　方向键切换角色　·　回车进入</span>
+  <button class="fix" id="status-fix" type="button">重试</button>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $  = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ======================================================================
+     一、交互点阵背景（React Bits「Dot Field」思路）
+     性能取舍：几何量在尺寸变化时预算一次；DPR 上限 1.75；节流到 ~30fps
+     另：每帧要遍历全部点，所以点数按视口面积设上限，避免超宽屏掉帧
+     ====================================================================== */
+  const cv = $('#dots'), ctx = cv.getContext('2d', { alpha: true });
+  const SPACING = 34, BASE_R = 1.35, PEAK_R = 4.6, VM = 178, MAX_DOTS = 1600;
+  let W = 0, H = 0, dots = [], mx = -1e4, my = -1e4;
+  let last = 0, acc = 0;
+  const pulses = [];                       // 点击脉冲
+  const FRAME = 1000 / 30;                 // 30fps 节流
+  const rnd = (() => {                     // 确定性伪随机，避免每次重绘抖动
+    let s = 2157;
+    return () => (s = (s * 16807) % 2147483647) / 2147483647;
+  })();
+
+  function build() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.75);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // 点太多就自动放宽间距（保证点数可控，30fps 才稳得住）
+    let sp = SPACING;
+    while ((Math.ceil(W / sp) + 1) * (Math.ceil(H / sp) + 1) > MAX_DOTS) sp += 4;
+
+    dots = [];
+    const cols = Math.ceil(W / sp) + 1, rows = Math.ceil(H / sp) + 1;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++)
+      dots.push({ x: c * sp, y: r * sp, x0: c * sp, y0: r * sp, p: rnd() * Math.PI * 2 });
+  }
+
+  function draw(now) {
+    ctx.clearRect(0, 0, W, H);
+    const t = now / 1000;
+    const still = mx < -9000;
+
+    for (let i = 0; i < dots.length; i++) {
+      const d = dots[i];
+      // 呼吸底噪：两个不同频率的正弦叠加，避免整片点阵同步闪烁
+      let a = 0.13 + 0.05 * Math.sin(t * 0.55 + d.p) + 0.03 * Math.sin(t * 0.21 + d.p * 1.7);
+      let r = BASE_R;
+
+      if (!still) {
+        const dx = d.x - mx, dy = d.y - my;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        if (dist < VM) {
+          const f = 1 - dist / VM;
+          const e = f * f * (3 - 2 * f);      // smoothstep，比线性自然
+          a += e * 0.66;
+          r += (PEAK_R - BASE_R) * e;
+          d.x += dx / dist * e * 0.55;        // 被光标推开
+          d.y += dy / dist * e * 0.55;
+        }
+      }
+      // 回弹（每帧都做，脱离光标后自己游回去）
+      d.x += (d.x0 - d.x) * 0.045;
+      d.y += (d.y0 - d.y) * 0.045;
+
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, r, 0, 6.2832);
+      ctx.fillStyle = `rgba(226,232,240,${Math.min(a, 0.9)})`;
+      ctx.fill();
+    }
+
+    // 点击脉冲：扩散的光圈扫过点阵（让"点击"这件事被看见）
+    for (let i = pulses.length - 1; i >= 0; i--) {
+      const p = pulses[i], age = (now - p.t) / 900;
+      if (age > 1) { pulses.splice(i, 1); continue; }
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, age * 340, 0, 6.2832);
+      ctx.lineWidth = 1.4 * (1 - age);
+      ctx.strokeStyle = `rgba(255,62,62,${0.5 * (1 - age)})`;
+      ctx.stroke();
+    }
+  }
+
+  function loop(now) {
+    requestAnimationFrame(loop);
+    acc += now - last; last = now;
+    if (acc < FRAME) return; acc = 0;
+    draw(now);
+  }
+
+  function resize() { build(); }
+  addEventListener('resize', resize, { passive: true });
+
+  if (reduced) {                       // 减少动态：只画一帧静态点阵，不做交互
+    build(); draw(0);
+  } else {
+    resize();
+    addEventListener('pointermove', e => { mx = e.clientX; my = e.clientY; }, { passive: true });
+    addEventListener('pointerdown', e => { pulses.push({ x: e.clientX, y: e.clientY, t: performance.now() }); }, { passive: true });
+    addEventListener('pointerleave', () => { mx = my = -1e4; }, { passive: true });
+    requestAnimationFrame(loop);
+  }
+
+  /* ======================================================================
+     二、焦点卡：悬停/键盘聚焦时压暗其余（Aceternity「Focus Cards」思路）
+     :has() 可用则交给 CSS，不可用则由 JS 补 .is-dim
+     ====================================================================== */
+  const stage = $('#stage');
+  const cards = $$('.card', stage);
+  const supportsHas = CSS.supports('selector(:has(*))');
+  const setDim = (except) => {
+    if (supportsHas) return;                       // :has() 可用就交给 CSS，避免两套逻辑打架
+    cards.forEach(c => c.classList.toggle('is-dim', c !== except));
+  };
+
+  cards.forEach(card => {
+    card.addEventListener('pointerenter', () => setDim(card));
+    card.addEventListener('pointerleave', () => setDim(null));
+    // 光晕跟随光标
+    card.addEventListener('pointermove', e => {
+      const r = card.getBoundingClientRect();
+      card.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+      card.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+    }, { passive: true });
+    card.addEventListener('focus', () => {
+      setDim(card);
+      setStatus('ready', `已选中「${card.querySelector('h2 span').textContent}」　·　回车进入`);
+    });
+    card.addEventListener('blur', () => setDim(null));
+  });
+  // JS 兜底样式：与上面 :has() 分支的视觉保持一致
+  const dimStyle = document.createElement('style');
+  dimStyle.textContent =
+    '.card.is-dim{opacity:.42;filter:saturate(.35) brightness(.6)}';
+  document.head.appendChild(dimStyle);
+
+  /* ======================================================================
+     三、键盘导航：方向键在四张卡之间移动，回车进入
+     ====================================================================== */
+  const idxOf = el => cards.indexOf(el);
+  addEventListener('keydown', e => {
+    if (e.key === 'Escape') { document.activeElement?.blur(); return; }
+    if (e.key === 'Enter' && document.activeElement?.classList.contains('card')) return; // 交给浏览器
+    const dirs = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowDown: [0, 1], ArrowUp: [0, -1] };
+    const d = dirs[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const cur = document.activeElement?.classList?.contains('card') ? document.activeElement : null;
+    if (!cur) { cards[0].focus(); return; }
+    const a = cur.getBoundingClientRect(), ac = { x: a.left + a.width / 2, y: a.top + a.height / 2 };
+    let best = null, bestScore = Infinity;
+    cards.forEach(c => {
+      if (c === cur) return;
+      const b = c.getBoundingClientRect(), bc = { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+      const dx = bc.x - ac.x, dy = bc.y - ac.y;
+      const along = dx * d[0] + dy * d[1];
+      if (along < 12) return;                       // 不在该方向上
+      const perp = Math.abs(dx * d[1] - dy * d[0]);
+      const score = along + perp * 2.1;             // 优先同排/同列
+      if (score < bestScore) { bestScore = score; best = c; }
+    });
+    (best || cur).focus();
+  });
+
+  /* ======================================================================
+     四、状态芯片：把状态变化可视化（React Bits「Call Chip」思路）
+     ====================================================================== */
+  const statusEl = $('#status'), statusText = $('#status-text'), fixBtn = $('#status-fix');
+  const HINT = '移动光标观察点阵　·　方向键切换角色　·　回车进入';
+  let statusTimer = 0;
+  function setStatus(state, text, autoReset) {
+    statusEl.dataset.state = state;
+    statusText.textContent = text;
+    clearTimeout(statusTimer);
+    if (autoReset) statusTimer = setTimeout(() => setStatus('ready', HINT), autoReset);
+  }
+
+  /* ======================================================================
+     五、进页转场：碎片下落（保留本站原有语言，碎片改用卡片自身图像）
+     ====================================================================== */
+  const shards = $('#shards'), veil = $('#veil'), preload = $('#preload');
+  let navigating = false;
+
+  function makeShards(card) {
+    const src = card.querySelector('img')?.currentSrc || card.querySelector('img')?.src;
+    const r = card.getBoundingClientRect();
+    if (!src || reduced) return 0;
+    // 把卡片切成 3×2 的碎片，逐块下落
+    const COLS = 3, ROWS = 2, N = COLS * ROWS;
+    const w = r.width / COLS, h = r.height / ROWS;
+    for (let row = 0; row < ROWS; row++) for (let col = 0; col < COLS; col++) {
+      const el = document.createElement('div');
+      el.className = 'shard';
+      Object.assign(el.style, {
+        left: (r.left + col * w) + 'px', top: (r.top + row * h) + 'px',
+        width: w + 'px', height: h + 'px'
+      });
+      const img = new Image();
+      img.src = src; img.alt = '';
+      // 让每块碎片显示原图对应的局部
+      Object.assign(img.style, {
+        position: 'absolute', width: r.width + 'px', height: r.height + 'px',
+        left: (-col * w) + 'px', top: (-row * h) + 'px', maxWidth: 'none'
+      });
+      el.appendChild(img);
+      const dirY = 1 + (row * 0.35);
+      el.style.setProperty('--tx', ((Math.random() - 0.5) * 220).toFixed(0) + 'px');
+      el.style.setProperty('--ty', (60 * dirY + Math.random() * 120).toFixed(0) + 'vh');
+      el.style.setProperty('--tz', (-120 - Math.random() * 260).toFixed(0) + 'px');
+      el.style.setProperty('--rx', (Math.random()).toFixed(2));
+      el.style.setProperty('--ry', (Math.random()).toFixed(2));
+      el.style.setProperty('--rz', (Math.random()).toFixed(2));
+      el.style.setProperty('--deg', (12 + Math.random() * 40).toFixed(0) + 'deg');
+      el.style.setProperty('--d', ((col + row) * 0.045).toFixed(3) + 's');
+      shards.appendChild(el);
+    }
+    return N;
+  }
+
+  function navigate(card) {
+    if (navigating) return;
+    const isBlank = card.target === '_blank';
+    const url = card.href;
+    const name = card.querySelector('h2 span').textContent;
+
+    if (isBlank || reduced) { window.open(url, '_blank', 'noopener'); setStatus('ready', `已在新标签页打开「${name}」`, 2200); return; }
+
+    navigating = true;
+    document.body.style.overflow = 'hidden';
+    setStatus('busy', `正在载入「${name}」档案…`);
+    stage.classList.add('filtering');
+
+    // 先把目标页拉起来，减少跳转后的白屏
+    preload.src = url;
+    let settled = false;
+    const done = ok => {
+      if (settled) return; settled = true;
+      if (ok) {
+        setStatus('ready', '档案已就绪　·　正在进入');
+        setTimeout(() => { location.href = url; }, 180);
+      } else {
+        // 失败态：压暗 + 红字 + 重试（React Bits「Call Chip」的失败分支）
+        setStatus('error', `「${name}」载入失败`);
+        navigating = false; document.body.style.overflow = '';
+        veil.classList.remove('on'); shards.replaceChildren();
+        stage.classList.remove('filtering');
+      }
+    };
+    preload.addEventListener('load', () => done(true), { once: true });
+    setTimeout(() => done(false), 4200);
+
+    const n = makeShards(card);
+    veil.classList.add('on');
+    if (n) setTimeout(() => { try { location.href = url } catch (_) {} }, 1150);
+  }
+
+  cards.forEach(card => card.addEventListener('click', e => {
+    e.preventDefault();                 // 由转场接管跳转（进入箭头在卡内，直接冒泡到这里）
+    navigate(card);
+  }));
+
+  function cancelTrip() {
+    veil.classList.remove('on');
+    shards.replaceChildren();
+    navigating = false;
+    document.body.style.overflow = '';
+    stage.classList.remove('filtering');
+  }
+  fixBtn.addEventListener('click', () => { cancelTrip(); setStatus('ready', '已取消　·　' + HINT); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && navigating) { cancelTrip(); setStatus('ready', '已取消　·　' + HINT); } });
+
+  /* ======================================================================
+     六、枢纽状态联动：光标进入枢纽时描边换成冷色（微反馈）
+     ====================================================================== */
+  const hub = $('#hub');
+  hub.addEventListener('pointerenter', () => hub.classList.add('focused'));
+  hub.addEventListener('pointerleave', () => hub.classList.remove('focused'));
+
+  // 首次交互后淡出提示
+  addEventListener('pointerdown', () => setStatus('ready', HINT), { once: true });
+})();
+</script>
+</body>
+</html>
