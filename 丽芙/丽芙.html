@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>丽芙图片展示</title>
+    <style>
+       
+       /*！网上拷贝下来的旋转图片*/
+       * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #f0f0f0 url('Picture/她的梦.jpeg') center/cover fixed;
+            font-family: Arial;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* 3D轮播容器 */
+        .wrapper {
+            width: 100%;
+            height: 300px;
+            perspective: 1000px;
+            position: relative;
+            margin: 50px 0;
+        }
+        
+        .inner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transform-style: preserve-3d;
+            animation: rotate 15s linear infinite;
+        }
+        
+        /* 卡片样式 */
+        .card {
+            position: absolute;
+            width: 180px;
+            height: 240px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotateY(var(--angle)) translateZ(300px);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .card.active {
+            transform: translate(-50%, -50%) rotateY(var(--angle)) translateZ(450px) scale(1.5) !important;
+            z-index: 100;
+        }
+        
+        .card .img {
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        
+        /* 旋转动画 */
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotateY(0deg); }
+            to { transform: translate(-50%, -50%) rotateY(360deg); }
+        }
+        
+        h1 { text-align: center; margin: 20px 0; color: #333; }
+        
+     
+
+        /* 简介图片列表样式：独占一行并居中 */
+        .intros img {
+            display: block;
+            width: 90%;
+            max-width: 800px;
+            margin: 16px auto;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        /* 底部视频容器：独占一行，清除浮动，隔绝侧边栏 */
+        .video-container {
+            clear: both;
+            width: 100%;
+            margin: 40px 0;
+            padding: 20px 0;
+            border-top: 2px solid rgba(255,255,255,0.3);
+        }
+        /* 底部视频样式：居中显示、与简介图一致宽度 */
+        .footer-video {
+            display: block;
+            width: 90%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-radius: 8px;
+            background: rgba(0,0,0,0.2);
+        }
+        /* 左侧侧边栏与主内容布局 */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* 整体不滚动，滚动交给内容容器 */
+            padding: 16px;
+            background: transparent;
+            color: #fff;
+            border-right: 1px solid rgba(255,255,255,0.2);
+            z-index: 10;
+        }
+        .sidebar-footer { padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
+        .sidebar-footer img { width: 90%; max-width: 220px; display: block; border-radius: 8px; margin: 12px auto; }
+        .sidebar h2 { font-size: 16px; margin-bottom: 12px; color: #fff; text-align: center; }
+        .sidebar pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; line-height: 1.6; color: #fff; }
+        .content { margin-left: 260px; margin-right: 260px; }
+        
+        /* 右侧侧边栏样式 */
+        .right-sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 260px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* 整体不滚动，滚动交给内容容器 */
+            padding: 16px;
+            background: transparent;
+            color: #fff;
+            border-left: 1px solid rgba(255,255,255,0.2);
+            z-index: 10;
+        }
+        .right-sidebar-content { flex: 1 1 auto; overflow-y: auto; }
+        .right-sidebar-content { scrollbar-width: none; -ms-overflow-style: none; }
+        .right-sidebar-content::-webkit-scrollbar { width: 0; height: 0; display: none; }
+        .right-sidebar h2 { font-size: 18px; margin-bottom: 12px; color: #fff; }
+        .right-sidebar pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; line-height: 1.6; color: #fff; }
+        
+        
+    </style>
+</head>
+<body>
+    <!-- 通用背景音乐脚本 -->
+
+    <!-- 左侧侧边栏：直接内嵌文本内容，不外部获取 -->
+    <aside class="sidebar">
+        <div class="sidebar-footer">
+            
+            <img src="Picture/表情包/表情包1.png" alt="表情包1">
+            <img src="Picture/表情包/表情包2.jpg" alt="表情包2">
+            <img src="Picture/表情包/表情包3.jpg" alt="表情包3">
+            <img src="Picture/表情包/表情包4.jpg" alt="表情包4">
+            <img src="Picture/表情包/表情包5.png" alt="表情包5">
+        </div>
+    </aside>
+    
+    <main class="content">
+    <div class="wrapper"> 
+        <div class="inner" id="carousel"> 
+            <div class="card" style="--angle: 0deg;" data-intro="intro-1"> 
+                <div class="img" style="background-image: url('Picture/机体/蚀暗.png');"></div> 
+            </div> 
+            <div class="card" style="--angle: 36deg;" data-intro="intro-2"> 
+                <div class="img" style="background-image: url('Picture/机体/流光.png');"></div> 
+            </div> 
+            <div class="card" style="--angle: 72deg;" data-intro="intro-3"> 
+                <div class="img" style="background-image: url('Picture/机体/仰光.png');"></div> 
+            </div> 
+            <div class="card" style="--angle: 108deg;" data-intro="intro-4"> 
+                <div class="img" style="background-image: url('Picture/机体/极昼.png');"></div> 
+            </div> 
+            <div class="card" style="--angle: 144deg;" data-intro="intro-5"> 
+                <div class="img" style="background-image: url('Picture/机体/霁梦/霁梦3.png');"></div> 
+            </div> 
+        </div> 
+    </div>
+
+    <!-- 简介图片：按蚀暗、流光、仰光、极昼、霁梦顺序，每图独占一行 -->
+    <section class="intros">
+        <img id="intro-1" src="Picture/简介/蚀暗简介.png" alt="蚀暗简介">
+        <img id="intro-2" src="Picture/简介/流光简介.png" alt="流光简介">
+        <img id="intro-3" src="Picture/简介/仰光简介.png" alt="仰光简介">
+        <img id="intro-4" src="Picture/简介/极昼简介.png" alt="极昼简介">
+        <img id="intro-5" src="Picture/简介/霁梦简介.jpg" alt="霁梦简介">
+    </section>
+    
+    <!-- 底部视频：放在页面最底下，隔绝侧边栏内容 -->
+    <section class="video-container">
+        <video class="footer-video" src="video/【战双帕弥什】「眠于厄寐之境」丽芙.mp4" controls preload="metadata" playsinline></video>
+    </section>
+    
+    <!-- 右侧侧边栏：内嵌提供的文本内容，不外部获取 -->
+    <aside class="right-sidebar">
+        <div class="right-sidebar-content">
+            <h2>丽芙简介</h2>
+            <pre id="rightSidebarText">灰鸦小队队员，出身自生命之星医疗共同体，举止礼貌，善解人意，与稍显柔弱的外表不同，意外地能够承受许多超乎常人的压力。
+ 
+ 作为最新的辅助型构造体，为团队提供着关键性的支援力量。
+ 
+ 在这个战火纷飞的时代中，她的心底一直保持着一个非常纯真的梦想。
+ 
+ 构造体按批次生产，每一批对应的功能都不同
+ 
+ 与「里」一样，丽芙是以后方支援为目的被制造出来的。
+ 
+ 淡然绽放于战场的纯白之花，以强大的分析能力和压倒性的火力支援构成团队的「盾」，然而，「少女」平静的外表下，正抱持着面临抉择的痛苦。
+ 
+ 拥有机体：蚀暗，流光，仰光，极昼（特化机体），霁梦</pre>
+        </div>
+    </aside>
+    
+    </main>
+
+    <script>
+        // 设置卡片角度
+        const cards = document.querySelectorAll('.card');
+        cards.forEach((card, index) => {
+            const angle = (360 / cards.length) * index;
+            card.style.setProperty('--angle', angle + 'deg');
+        });
+        
+        // 点击放大功能：第一次放大，第二次滚动到对应简介图片
+        cards.forEach(card => {
+            card.addEventListener('click', function() {
+                if (this.classList.contains('active')) {
+                    // 已放大，再次点击则滚动到对应简介图片
+                    const introId = this.dataset.intro;
+                    if (introId) {
+                        document.getElementById(introId).scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } else {
+                    // 第一次点击：放大自身，取消其他卡片放大
+                    cards.forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+    </script>
+    
+</body>
+</html>

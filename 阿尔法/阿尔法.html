@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>阿尔法</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b0d10;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto}
+.tabs{width:100vw;height:100vh;display:flex;flex-direction:column;position:relative}
+
+/* 箭头按钮样式 */
+.swiper-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 80px;
+  height: 80px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.swiper-arrow:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+
+.swiper-arrow-left {
+  left: 40px;
+}
+
+.swiper-arrow-right {
+  right: 40px;
+}
+
+.swiper-arrow img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: brightness(1.2);
+  transition: all 0.3s ease;
+}
+
+.swiper-arrow:hover img {
+  filter: brightness(1.5);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .swiper-arrow {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .swiper-arrow-left {
+    left: 20px;
+  }
+  
+  .swiper-arrow-right {
+    right: 20px;
+  }
+}
+.tabs-viewport{position:relative;flex:1;overflow:hidden}
+.swiper{height:100%}
+.swiper-wrapper{height:100%}
+.swiper-slide{width:100%;height:100%;position:relative}
+
+/* 为卡片添加3D效果 */
+.panel-card{
+  transform-style:preserve-3d;
+}
+.panel{flex:0 0 100%;height:100%;position:relative;display:flex;align-items:stretch;justify-content:stretch;background:#000}
+.panel-card{width:100%;height:100%;border-radius:0;background-image:none;background-size:cover;background-repeat:no-repeat;background-position:center;display:flex;align-items:flex-end;justify-content:flex-start;padding:24px}
+.panel-title{font-size:22px;margin:0}
+.panel.panel-video .card-front{
+  background-image: none !important;
+  background-size: initial !important;
+  background-position: initial !important;
+  background-repeat: initial !important;
+  background-color: #000;
+}
+.panel.panel-gallery .card-front{
+  background-image: none !important;
+  background-size: initial !important;
+  background-position: initial !important;
+  background-repeat: initial !important;
+  background-color: #000;
+}
+.flippable-card{position:relative;background:none;padding:0;perspective:1000px}
+.flippable-card .card-inner{position:absolute;inset:0;transition:transform 1.6s;transform-style:preserve-3d}
+.flippable-card.is-flipped .card-inner{transform:rotateY(180deg)}
+.flippable-card .card-face{position:absolute;inset:0;backface-visibility:hidden}
+.flippable-card .card-front{background-image:none;background-size:initial;background-position:initial}
+.flippable-card .card-back{background:#05070d;padding:32px;transform:rotateY(180deg)}
+.flippable-card .panel-title{position:absolute;left:24px;bottom:24px;margin:0}
+.card-face.card-back{border-radius:0;display:flex;flex-direction:column;overflow:hidden}
+
+/* 顶部导航栏样式 */
+.top-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 10px 20px;
+  background: transparent;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 菜单按钮样式 */
+.menu-button {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.menu-button svg {
+  width: 44px;
+  height: 25px;
+  transition: transform 0.3s ease;
+}
+
+.menu-button:hover svg {
+  transform: scale(1.1);
+}
+
+/* 标题样式 */
+.nav-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-title::before {
+  content: "✦";
+  color: #ff0f7b;
+  font-size: 20px;
+}
+
+/* 管理标签样式 */
+.management-tabs {
+  display: flex;
+  gap: 15px;
+  transition: all 0.3s ease;
+}
+
+.management-tabs.collapsed {
+  display: none;
+}
+
+.management-tab {
+  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.management-tab:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.management-tab.active {
+  background: rgba(255, 15, 123, 0.6);
+  border-color: rgba(255, 15, 123, 0.8);
+}
+.glass-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;width:100%}
+.glass-column{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:28px;padding:20px;display:flex;flex-direction:column;backdrop-filter:blur(12px)}
+.glass-column.skin-column{padding:0;position:relative;overflow:hidden;margin:0;background:transparent;border:1px solid rgba(255,255,255,0.08);backdrop-filter:none;height:100%}
+.glass-column.skin-column .glass-column-title{position:absolute;left:12px;top:12px;z-index:12;margin:0;padding:6px 10px;background:rgba(0,0,0,0.25);border-radius:8px}
+.glass-column.fanart-column{background:transparent;border:1px solid rgba(255,255,255,0.08);backdrop-filter:none}
+.glass-column-title{margin:0;font-size:18px;letter-spacing:4px;text-transform:uppercase;color:#e4e8ff;font-weight:600}
+.glass-track{flex:1;position:relative;display:flex;align-items:center;gap:0;margin-top:16px;overflow-x:auto;padding:12px 0;scroll-snap-type:x mandatory}
+.glass-track::-webkit-scrollbar{height:6px;background:transparent}
+.glass-track::-webkit-scrollbar-thumb{background:#37ff8b;border-radius:999px}
+.glass-track .glass{position:relative;width:200px;height:190px;background:linear-gradient(#fff2,transparent);border:1px solid rgba(255,255,255,0.1);box-shadow:0 25px 25px rgba(0,0,0,0.25);display:flex;justify-content:center;align-items:center;transition:.5s;border-radius:16px;margin:0 -45px;backdrop-filter:blur(10px);transform:rotate(calc(var(--r,0)*1deg));overflow:hidden;scroll-snap-align:center}
+.glass-track .glass img{width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.glass-track .glass::before{display:none}
+.glass-track:hover .glass{transform:rotate(0deg);margin:0 12px}
+
+/* 精简后的涂装轨道样式：规整排列，hover 扩展，图片填满 */
+.glass-track.skin-track{
+  display:flex;align-items:stretch;gap:0;margin-top:0;overflow-x:auto;padding:0;scroll-snap-type:x mandatory;
+}
+.glass-track.skin-track .glass{
+  flex:1 1 0%;min-width:0;height:380px;background:#212121;border:1.5px solid #ff5a91;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:flex .5s,box-shadow .35s,border .35s;margin:0;box-shadow:0 8px 32px rgba(0,0,0,0.18);overflow:hidden;scroll-snap-align:center;padding:0;
+}
+.glass-track.skin-track .glass:hover{flex:4 1 0%;z-index:10;box-shadow:0 12px 40px 0 #ff5a9133,0 2px 8px #0008;border:2.5px solid #ff5a91}
+.glass-track.skin-track .glass img{width:100%;height:100%;object-fit:cover;border-radius:2px;transition:none}
+/* 变体尺寸（按需使用） */
+.icon-container .glass.small{width:140px;height:160px;border-radius:8px}
+.icon-container .glass.medium{width:180px;height:200px}
+.icon-container .glass.large{width:220px;height:240px}
+/* 基于你提供的 React Card 风格：横向可扩展的涂装展示 */
+.skin-card{width:100%;height:100%;border-radius:0;background:transparent;display:flex;gap:0;padding:0;margin:0;position:relative}
+.skin-card p{height:100%;flex:1;overflow:hidden;cursor:pointer;border-radius:0;transition:all .5s;background:transparent;border:0;display:block;position:relative;margin:0;padding:0;top:0;left:0}
+.skin-card p:hover{flex:4}
+.skin-card p img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;top:0;left:0}
+/* 卡面视频样式：铺满并禁止直接交互（点击由容器处理） */
+.card-front{position:relative;overflow:hidden}
+.card-front video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;display:block}
+.card-front .video-placeholder{position:absolute;inset:0;display:none}
+
+/* 图片查看器样式 */
+.image-viewer{position:fixed;top:0;left:0;right:0;bottom:0;background:#000e;z-index:999999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease;pointer-events:none;overflow:hidden}
+  .image-viewer.show{opacity:1;pointer-events:all}
+  /* 修改为完整显示图片，设置最大宽度和高度以适应屏幕 */
+  .image-viewer .fv-img{position:relative;object-fit:contain;transition:opacity .3s ease;max-width:90%;max-height:90%;width:auto;height:auto}
+.image-viewer .fv-close{position:absolute;top:20px;right:20px;width:40px;height:40px;background:#000c;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;cursor:pointer;z-index:1000000;transition:background-color .3s ease}
+.image-viewer .fv-close:hover{background:#000f}
+
+/* Vue卡片样式 */
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(-45deg, #f89b29 0%, #ff0f7b 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 2;
+}
+
+.card:hover {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.card:hover .card__image {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.card__content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  background-color: #fff;
+  opacity: 0;
+  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  text-align: left;
+  overflow-y: auto;
+  border-radius: 10px;
+}
+
+/* 美化滚动条 */
+.card__content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.card__content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.card__content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.card__content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.card:hover .card__content {
+  opacity: 1;
+}
+
+.card__title {
+  margin: 0 0 16px 0;
+  font-size: 28px;
+  color: #2c3e50;
+  font-weight: 800;
+  text-align: center;
+  width: 100%;
+  border-bottom: 2px solid #ff0f7b;
+  padding-bottom: 12px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.card__description {
+  margin: 0;
+  font-size: 15px;
+  color: #34495e;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+  text-align: justify;
+  white-space: pre-line;
+  overflow-wrap: break-word;
+}
+
+/* 为简介文本添加段落样式 */
+.card__description p {
+  margin: 0 0 12px 0;
+}
+
+/* 为简介中的小标题添加样式 */
+.card__description strong {
+  color: #ff0f7b;
+  font-weight: 700;
+}
+
+/* 为简介中的列表项添加样式 */
+.card__description li {
+  margin: 8px 0;
+  padding-left: 8px;
+}
+
+/* 确保内容区域在不同屏幕尺寸下都有良好的显示效果 */
+@media (max-width: 768px) {
+  .card__content {
+    padding: 16px;
+  }
+  
+  .card__title {
+    font-size: 24px;
+  }
+  
+  .card__description {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+/* 角色立绘卡片样式 */
+.role-avatar-container .card {
+  width: 100%;
+  height: 100%;
+}
+</style>
+<link rel="stylesheet" href="swiper-bundle.min.css">
+</head>
+<body>
+<div class="tabs" id="tabs">
+  <!-- 添加左右箭头按钮 -->
+  <button class="swiper-arrow swiper-arrow-left content-controls" id="prevBtn">
+    <img src="组件/左箭头.png" alt="上一张">
+  </button>
+  <button class="swiper-arrow swiper-arrow-right content-controls" id="nextBtn">
+    <img src="组件/右箭头.png" alt="下一张">
+  </button>
+  <div class="tabs-viewport" id="viewport">
+    <div class="swiper" id="swiper">
+      <div class="swiper-wrapper">
+      <section class="panel panel-video swiper-slide" data-index="0">
+        <div class="panel-card flippable-card">
+          <div class="card-inner">
+            <div class="card-face card-front"></div>
+            <div class="card-face card-back" data-role="红莲"></div>
+          </div>
+        </div>
+      </section>
+      <section class="panel panel-audio swiper-slide" data-index="1">
+        <div class="panel-card flippable-card">
+          <div class="card-inner">
+            <div class="card-face card-front"></div>
+            <div class="card-face card-back" data-role="深红囚影"></div>
+          </div>
+        </div>
+      </section>
+      <section class="panel panel-gallery swiper-slide" data-index="2">
+        <div class="panel-card flippable-card">
+          <div class="card-inner">
+            <div class="card-face card-front"></div>
+            <div class="card-face card-back" data-role="深红之渊"></div>
+          </div>
+        </div>
+      </section>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="swiper-bundle.min.js"></script>
+<!-- 可复用的图标滑动框模板：克隆此模板并插入到需要显示图标的容器中 -->
+<template id="icon-template">
+  <div class="icon-container">
+    <div data-text="Github" style="--r:-15;" class="glass medium">
+      <svg viewBox="0 0 496 512" height="1em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/>
+      </svg>
+    </div>
+    <div data-text="Code" style="--r:5;" class="glass medium">
+      <svg viewBox="0 0 640 512" height="1em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M392.8 1.2c-17-4.9-34.7 5-39.6 22l-128 448c-4.9 17 5 34.7 22 39.6s34.7-5 39.6-22l128-448c4.9-17-5-34.7-22-39.6zm80.6 120.1c-12.5 12.5-12.5 32.8 0 45.3L562.7 256l-89.4 89.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l112-112c12.5-12.5 12.5-32.8 0-45.3l-112-112c-12.5-12.5-32.8-12.5-45.3 0zm-306.7 0c-12.5-12.5-32.8-12.5-45.3 0l-112 112c-12.5 12.5-12.5 32.8 0 45.3l112 112c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L77.3 256l89.4-89.4c12.5-12.5 12.5-32.8 0-45.3z"/>
+      </svg>
+    </div>
+    <div data-text="Earn" style="--r:25;" class="glass medium">
+      <svg viewBox="0 0 576 512" height="1em" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M64 64C28.7 64 0 92.7 0 128V384c0 35.3 28.7 64 64 64H512c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H64zm64 320H64V320c35.3 0 64 28.7 64 64zM64 192V128h64c0 35.3-28.7 64-64 64zM448 384c0-35.3 28.7-64 64-64v64H448zm64-192c-35.3 0-64-28.7-64-64h64v64zM288 160a96 96 0 1 1 0 192 96 96 0 1 1 0-192z"/>
+      </svg>
+    </div>
+  </div>
+</template>
+<script>
+const swiper=new Swiper('#swiper',{initialSlide:0,speed:500,effect:'slide',centeredSlides:true,slidesPerView:1,grabCursor:true})
+window.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')swiper.slidePrev();if(e.key==='ArrowRight')swiper.slideNext()})
+
+// 添加箭头按钮点击事件
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+prevBtn.addEventListener('click', () => {
+  swiper.slidePrev();
+});
+
+nextBtn.addEventListener('click', () => {
+  swiper.slideNext();
+});
+
+// 添加鼠标跟随效果
+const tabsElement = document.getElementById('tabs');
+const swiperElement = document.getElementById('swiper');
+
+// 为卡片添加3D悬浮效果
+function add3DFloatEffect() {
+  let isMoving = false;
+  
+  tabsElement.addEventListener('mousemove', (e) => {
+    if (isMoving) return;
+    isMoving = true;
+    
+    // 计算鼠标在视口中的位置
+    const mouseX = e.clientX;
+    const mouseY = e.clientY;
+    
+    // 获取视口尺寸
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    // 计算偏移量和旋转角度
+    // 平移范围：-15 到 15px
+    const offsetX = ((mouseX / viewportWidth) - 0.5) * 30;
+    const offsetY = ((mouseY / viewportHeight) - 0.5) * 30;
+    // 旋转范围：-5 到 5度
+    const rotateY = ((mouseX / viewportWidth) - 0.5) * 10;
+    const rotateX = -((mouseY / viewportHeight) - 0.5) * 10;
+    
+    // 应用3D效果到当前激活的卡片，但只在未翻转状态下
+    const activeSlide = swiperElement.querySelector('.swiper-slide-active');
+    if (activeSlide) {
+      const flippableCard = activeSlide.querySelector('.flippable-card');
+      const panelCard = activeSlide.querySelector('.panel-card');
+      if (panelCard && !flippableCard.classList.contains('is-flipped')) {
+        panelCard.style.transition = 'transform 0.3s ease-out';
+        panelCard.style.transform = `translate(${offsetX}px, ${offsetY}px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      }
+    }
+    
+    setTimeout(() => {
+      isMoving = false;
+    }, 100);
+  });
+  
+  // 鼠标离开时重置卡片位置
+  tabsElement.addEventListener('mouseleave', () => {
+    const activeSlide = swiperElement.querySelector('.swiper-slide-active');
+    if (activeSlide) {
+      const panelCard = activeSlide.querySelector('.panel-card');
+      if (panelCard) {
+        panelCard.style.transition = 'transform 0.5s ease-out';
+        panelCard.style.transform = 'translate(0, 0) rotateX(0deg) rotateY(0deg)';
+      }
+    }
+  });
+  
+  // 卡片切换时重置位置
+  swiper.on('slideChange', () => {
+    const slides = swiperElement.querySelectorAll('.swiper-slide');
+    slides.forEach(slide => {
+      const panelCard = slide.querySelector('.panel-card');
+      if (panelCard) {
+        panelCard.style.transform = 'translate(0, 0) rotateX(0deg) rotateY(0deg)';
+      }
+    });
+  });
+  
+  // 监听卡片翻转事件，重置3D效果
+  document.querySelectorAll('.flippable-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const panelCard = card.querySelector('.panel-card');
+      if (panelCard) {
+        // 重置3D效果，避免与翻转效果冲突
+        panelCard.style.transform = 'translate(0, 0) rotateX(0deg) rotateY(0deg)';
+      }
+    });
+  });
+}
+
+// 初始化3D悬浮效果
+add3DFloatEffect();
+const characters=[{name:'红莲',dir:'红莲',avatar:'红莲/终解头像.png',intro:'露西亚：简介\n 露西亚（Lucia），灰鸦小队队长，个性认真执着，作为早期批次接受改造的军用型构造体，在漫长的战火中淬炼出了强大的实力与坚定的意志。如今与指挥官在战斗中的无间默契，被作为典范广为流传于战场。然而在她时常有些异样的回忆中，似乎埋藏了一段十分关键的过去。\n 设定\n 相貌穿着\n 喜欢收集围巾\n 双马尾是她现在喜欢的发型之一\n 性格特点\n 曾经绝对服从指令，总是冷静高效地执行作战任务，战斗时会有不顾自身安危的倾向。以鸦羽机体重生后，开始学会温柔待人。\n 曾经一直极力压抑着内心涌现出来的各种情感，规避任何影响战局的情感情绪因素。\n 鸦羽机体的情感模块被未知权限者设定了不可关闭。\n 战斗\n 使用武器为太刀\n 机体本身的瞬间加速性能优异，能够利用身后加装的腿部和背部喷射器作出各种复杂机动，同时后背的喷射器能够单独取出当作武器来使用。\n 除了刀剑以外还能外接大型能量罐使用长射程武装，虽然保留了这样的功能，但最后没有实装到机体之上。\n 重要设定\n 本体露西亚，常被称为阿尔法，指挥的露西亚是空中花园复制的',skins:[{title:'泛用式',file:'红莲/涂装/泛用式.png'},{title:'泛用式改',file:'红莲/涂装/泛用式改.png'},{title:'泛用式终',file:'红莲/涂装/泛用式终.png'},{title:'雨街漫步',file:'红莲/涂装/雨街漫步.png'}],fanarts:[{title:'同人1',file:'红莲/同人/同人1.png'},{title:'同人2',file:'红莲/同人/同人2.jpg'},{title:'同人3',file:'红莲/同人/同人3.jpg'},{title:'同人4',file:'红莲/同人/同人4.jpg'},{title:'同人5',file:'红莲/同人/同人5.jpg'},{title:'同人6',file:'红莲/同人/同人6.jpg'}],backgrounds:[{title:'背景',file:'红莲/背景.jpg'}]},{name:'深红囚影',dir:'深红囚影',avatar:'深红囚影/终解头像.png',intro:'深红囚影：露西亚·深红囚影是《战双帕弥什》中的S级进攻型泛用机体 。该角色经历升格网络变动后以全新形态行动，能力革新后驾驭更大力量并突破极限。虽能同时使用三把兵刃，但仍选择太刀组合，背部旧伤痕铭记过往痛苦，需通过极限训练防止力量失控 。其刀技修炼既是战斗需求，亦是背负压力的自我锤炼，战斗风格以雷电伤害为核心，可随时切换攻击模式 。露西亚·深红囚影在力量掌控与内心挣扎间寻求平衡，但仍属强力主C选择，适合通过自选包获取碎片升阶，预计长期具备实战价值\n 中文名露西亚·深红囚影\n 别    名雷毛、蚯蚓\n 配    音小N（中配）、石川由依（日配）、尾狐殿（粤配）\n 性    别女\n 登场作品战双帕弥什\n 生    日6月15日\n 虚拟人物血型A型\n 身    高165 cm\n 体    重48 kg\n 意识年龄17\n 循环液类型A型\n 属    性雷\n 机体资料\n 由帕弥什异聚而成的机体，但如果能够完全分析其能量流动，则能够发现其中的帕弥什能量实际上可以被分为两种，二者互相作用维持平衡，从而使机体处于稳定状态。\n “永生……首先，追求永生的人，完全不懂得生命的价值所在。”不仅仅是从自己的经历出发，而是发自内心地认为这是一种毫无意义的渴求。而那些因为这样的私心不惜犯下罪恶之人，更是不值得饶恕的个体。\n 在经过帕弥什的“再次筛选”后，这副机体的能力得到了巨大的革新。与之前因为讨厌被力量驾驭、而只是小幅度“接受”帕弥什强化的机体不同，新的机体不仅能发挥出更大力量，甚至还可能在极端时刻再次突破当前——一切取决于能够多大程度上压制帕弥什。\n “渴求太多，反而会被束缚。能够完全操控的剑刃，才能发挥出理想中的效果。”以这副机体同时使用三把兵刃作战也并非没有可能，相反，正是因为尝试过数次之后，才选择了仍旧以大小太刀作为组合武器。\n 将长发束起后，机体背部的两道陈旧伤痕便隐隐可见。它们在这副机体上镌刻已经太久，但几乎没有人知道这两条伤痕的存在，但伤痕的承载者更愿意将其作为刻痕，铭记间接带来伤痛的始作俑者。\n 为了保持目前的稳定状态，并没有办法真正放松下来。与帕弥什——或者说升格网络意志的对抗从未停止。为了防止自己无法抗衡体内充满变数的力量，提早进行一些突破上限的演练是必要的。或许在外人看来。只是忙于练习刀技，而在真正能够见微知著的人眼中，这样的“孤僻”却是背负着压力的选择。',skins:[{title:'泛用式',file:'深红囚影/涂装/泛用式.png'},{title:'泛用式改',file:'深红囚影/涂装/泛用式改.png'},{title:'泛用式终',file:'深红囚影/涂装/泛用式终.png'},{title:'赤樗椿',file:'深红囚影/涂装/赤樗椿.png'}],fanarts:[{title:'同人1',file:'深红囚影/同人/同人1.png'},{title:'同人2',file:'深红囚影/同人/同人2.png'},{title:'同人3',file:'深红囚影/同人/同人3.jpg'},{title:'同人4',file:'深红囚影/同人/同人4.jpg'},{title:'同人5',file:'深红囚影/同人/2faee9753a324ae6a15ee169d5a05f8620240615.jpg'},{title:'同人6',file:'深红囚影/同人/4decb6c19e164e928199814cea73f80520250212.jpg'},{title:'同人7',file:'深红囚影/同人/572d0e9e772f42d79d2a77297cc771f720240905.jpg'},{title:'同人8',file:'深红囚影/同人/617b55eb03d84345bddfb65f01fc27a320240418.jpg'}],backgrounds:[{title:'背景',file:'深红囚影/背景.jpg'}]},{name:'深红之渊',dir:'深红之渊',avatar:'深红之渊/终解头像.png',intro:'深红之渊：中文名：露西亚·深红之渊\n 别    名：深红之渊，阿尔法\n 配    音：shourei小N（中文普通话）、尾狐殿（粤语）\n 性    别：女\n 登场作品《战双帕弥什》\n 生    日：6月15日\n 身    高：165 cm\n 体    重：48 kg\n 意识年龄：17\n 循环液类型：A型\n 在015号城市的行动中与灰鸦小队初次见面的神秘敌人，给人留下了强大而随性的印象。似乎对灰鸦小队，特别是露西亚，有不同寻常的关注。\n 升格者阵营战力代表，常骑着改造的摩托出现于各地。由于过往的经历，对人类阵营保有敌意，对于自己的克隆体露西亚颇为关注，期待于她何时认清人类的丑恶之处。在观察露西亚与指挥（玩家）的过程中对于指挥产生兴趣，将其视为对手。\n 资料：\n 1只会参与比较重要的行动。平日里经常脱离其他升格者成员独自行动。\n 2.目前的实力仅仅只是被帕弥什病毒小幅强化后的结果。\n 3.对太弱的对手或者多余的杀戮没有兴趣。\n 4.杂活或者打扫战场的工作经常交给罗兰或加百列执行。\n 5.腰后的刀鞘在特殊情况下可以起攻击或支撑作用。并且可以根据刀的形状进行尺寸调整。\n 6.一直在观察灰鸦小队的现任指挥官。\n 7.对待灰鸦小队的露西亚，主张已经发生了变化。\n 8.重逢后的姐妹之间，时常流动着一丝尴尬的气氛。现在的露娜已经并不能完全了解姐姐的想法。\n 秘闻：\n 1.希望游遍世界各处奇特的风景。\n 2.喜欢收集强大的宠物和挑战强大的对手。\n 3.外套上有一些补丁并不是为了修补而打上的。\n 4.长期沉迷于机车改装。\n 5.鞋带的绑法会随着心情发生变化。\n 6.习惯站着阅读书籍。\n 7.有些介意自己的左眼被人看到。\n 8.腰间的口袋里会放有一些鱼饵。\n 9.只允许露娜帮助自己保养机体。\n 10.比起过去更加沉默，但却有更多的机会露出微笑。\n 11.关注灰鸦小队动向。\n 12.喜欢站在高处。',skins:[{title:'末世绀华',file:'深红之渊/涂装/末世绀华.png'},{title:'泛用式',file:'深红之渊/涂装/泛用式.png'},{title:'泛用式改',file:'深红之渊/涂装/泛用式改.png'},{title:'泛用式终',file:'深红之渊/涂装/泛用式终.png'}],fanarts:[{title:'同人1',file:'深红之渊/同人/同人1.jpg'},{title:'同人2',file:'深红之渊/同人/同人2.jpg'},{title:'同人3',file:'深红之渊/同人/同人3.jpg'},{title:'同人4',file:'深红之渊/同人/同人4.png'},{title:'同人5',file:'深红之渊/同人/458451679bdc4db795b45b7cf5a83b3420250608.jpg'},{title:'同人6',file:'深红之渊/同人/6606783e337a4c01bb98b3a6308ec51c20240729.jpg'},{title:'同人7',file:'深红之渊/同人/8a474cec41a045eb8a22bf3d52d6d8d620241222.jpg'},{title:'同人8',file:'深红之渊/同人/9bebf0605a4546de86e1460861bda8d120241221.jpg'}],backgrounds:[{title:'背景',file:'深红之渊/背景.jpg'}]}]
+const introCache=new Map()
+// 修改fetchIntro函数，直接返回角色的intro文本
+const fetchIntro=characterIntro=>{
+  if(introCache.has(characterIntro))return introCache.get(characterIntro);
+  // 直接返回intro文本，不需要从文件中获取
+  const promise=Promise.resolve(characterIntro.trim()?characterIntro:'暂无简介');
+  introCache.set(characterIntro,promise);
+  return promise;
+}
+// 背面视频占位图缓存与预加载
+const posterCache=new Map();
+const posterMap={
+  '红莲':'视频/红莲.jpg',
+  '深红囚影':'视频/深红囚影.jpg',
+  '深红之渊':'视频/深红之渊.jpg'
+};
+const preloadPoster=src=>{
+  if(!src) return Promise.resolve(null);
+  if(posterCache.has(src)) return posterCache.get(src);
+  const img=new Image();
+  img.decoding='async';
+  const p=new Promise(resolve=>{
+    img.onload=()=>resolve(img);
+    img.onerror=()=>resolve(null);
+  });
+  img.src=src;
+  posterCache.set(src,p);
+  return p;
+};
+Object.values(posterMap).forEach(preloadPoster);
+const buildCardBack=back=>{const role=back.dataset.role;const character=characters.find(char=>char.name===role);if(!character)return;
+  
+  // 添加视频背景
+  let videoSrc = '';
+  switch(role) {
+    case '红莲':
+      videoSrc = '视频/红莲.mp4';
+      break;
+    case '深红囚影':
+      videoSrc = '视频/深红囚影.mp4';
+      break;
+    case '深红之渊':
+      videoSrc = '视频/深红之渊.mp4';
+      break;
+    default:
+      videoSrc = '';
+  }
+  
+  if (videoSrc) {
+    const video = document.createElement('video');
+    video.src = videoSrc;
+    video.autoplay = false;
+    video.muted = false;
+    video.loop = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    video.controls = false;
+    video.tabIndex = -1;
+    video.setAttribute('aria-hidden','true');
+    video.style.position = 'absolute';
+    video.style.inset = '0';
+    video.style.width = '100%';
+    video.style.height = '100%';
+    video.style.objectFit = 'cover';
+    video.style.zIndex = '0';
+    video.style.filter = 'brightness(0.7)';
+    video.style.pointerEvents = 'none';
+    // 添加音量控制，默认音量50%
+    video.volume = 0.5;
+    back.appendChild(video);
+
+    // 创建并配置占位图：视频暂停/未播放时显示
+    const posterSrc=posterMap[role]||'';
+    const poster=document.createElement('img');
+    poster.className='video-placeholder';
+    poster.alt=role+' 背景图';
+    poster.style.position='absolute';
+    poster.style.inset='0';
+    poster.style.width='100%';
+    poster.style.height='100%';
+    poster.style.objectFit='cover';
+    poster.style.zIndex='0';
+    poster.style.opacity='0';
+    poster.style.transition='opacity 0.3s ease';
+    poster.style.pointerEvents='none';
+    if(posterSrc){ poster.src=posterSrc; preloadPoster(posterSrc); }
+    back.appendChild(poster);
+    
+    const updatePosterVisibility=()=>{
+      try{
+        const shouldHide = video && !video.paused && !video.ended && video.readyState>=2;
+        poster.style.opacity = shouldHide ? '0' : '1';
+      }catch(e){}
+    };
+    // 通过事件动态检测播放状态
+    ['play','playing','pause','waiting','seeking','stalled','ended'].forEach(evt=>{
+      video.addEventListener(evt,updatePosterVisibility);
+    });
+    video.addEventListener('error',()=>{ poster.style.opacity='1'; });
+    video.addEventListener('loadeddata',updatePosterVisibility);
+    
+    // 初始状态更新
+    updatePosterVisibility();
+    
+    // 移除自动播放，需要用户手动触发
+  }
+  
+  // 创建顶部导航栏
+  const topNav = document.createElement('div');
+  topNav.className = 'top-navigation';
+  topNav.style.position = 'relative';
+  topNav.style.zIndex = '2';
+  
+  // 创建菜单按钮和标题组合
+  const menuButton = document.createElement('div');
+  menuButton.className = 'menu-button';
+  
+  // 添加三横杠图标
+  menuButton.innerHTML = `<svg viewBox="0 0 44 25"><rect x="1" y="0" width="40" height="3" fill="#ffffff"></rect><rect x="1" y="11" width="40" height="3" fill="#ffffff"></rect><rect x="1" y="22" width="40" height="3" fill="#ffffff"></rect></svg>`;
+  
+  // 添加标题
+  const navTitle = document.createElement('div');
+  navTitle.className = 'nav-title';
+  navTitle.textContent = character.name;
+  menuButton.appendChild(navTitle);
+  
+  // 创建管理标签
+  const managementTabs = document.createElement('div');
+  managementTabs.className = 'management-tabs';
+  
+  // 创建三个标签
+  const tab1 = document.createElement('div');
+  tab1.className = 'management-tab active';
+  tab1.textContent = '人物简介';
+  
+  const tab2 = document.createElement('div');
+  tab2.className = 'management-tab';
+  tab2.textContent = '涂装展示';
+  
+  const tab3 = document.createElement('div');
+  tab3.className = 'management-tab';
+  tab3.textContent = '同人画廊';
+  
+  managementTabs.appendChild(tab1);
+  managementTabs.appendChild(tab2);
+  managementTabs.appendChild(tab3);
+  
+  // 创建视频播放/暂停按钮
+  const playPauseBtn = document.createElement('button');
+  playPauseBtn.className = 'video-play-pause-btn';
+  playPauseBtn.innerHTML = `<img src="组件/播放.png" alt="播放/暂停" style="width: 24px; height: 24px; object-fit: contain;">`;
+  playPauseBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+  playPauseBtn.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+  playPauseBtn.style.borderRadius = '50%';
+  playPauseBtn.style.width = '40px';
+  playPauseBtn.style.height = '40px';
+  playPauseBtn.style.display = 'flex';
+  playPauseBtn.style.alignItems = 'center';
+  playPauseBtn.style.justifyContent = 'center';
+  playPauseBtn.style.cursor = 'pointer';
+  playPauseBtn.style.transition = 'all 0.3s ease';
+  playPauseBtn.style.backdropFilter = 'blur(10px)';
+  
+  playPauseBtn.addEventListener('mouseenter', () => {
+    playPauseBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+    playPauseBtn.style.transform = 'scale(1.1)';
+  });
+  
+  playPauseBtn.addEventListener('mouseleave', () => {
+    playPauseBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+    playPauseBtn.style.transform = 'scale(1)';
+  });
+  
+  // 添加视频播放/暂停功能（以实际播放状态为准）
+  playPauseBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const videos = back.querySelectorAll('video');
+    videos.forEach(vid => {
+      try {
+        if (!vid.paused) {
+          vid.pause();
+        } else {
+          vid.play().catch(()=>{});
+        }
+      } catch(_) {}
+    });
+  });
+  
+  // 组装顶部导航栏
+  topNav.appendChild(menuButton);
+  topNav.appendChild(managementTabs);
+  topNav.appendChild(playPauseBtn);
+  
+  // 阻止管理栏点击事件冒泡，避免触发卡片翻面
+  topNav.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+  
+  // 创建内容网格
+  const grid=document.createElement('div');
+  grid.className='glass-grid content-grid';
+  grid.style.position = 'relative';
+  grid.style.zIndex = '1';
+  grid.style.flex = '1';
+  grid.style.overflow = 'auto';
+  grid.style.transition = 'all 0.3s ease';
+  
+  const roleColumn=createRoleColumn(character);
+  const skinColumn=createSkinColumn(character);
+  const fanartColumn=createFanartColumn(character);
+  grid.append(roleColumn,skinColumn,fanartColumn);
+  
+  // 组装卡片背面
+  back.appendChild(topNav);
+  back.appendChild(grid);
+  
+  // 确保初始状态所有内容可见
+  managementTabs.classList.remove('collapsed');
+  grid.classList.remove('collapsed');
+  grid.style.display = 'grid';
+  const initialArrowButtons = document.querySelectorAll('.content-controls');
+  initialArrowButtons.forEach(button => {
+    button.classList.remove('collapsed');
+    button.style.display = 'flex';
+  });
+  
+  // 添加菜单按钮点击事件，用于收起/展开所有内容
+  menuButton.addEventListener('click', () => {
+    // 切换管理标签显示状态
+    managementTabs.classList.toggle('collapsed');
+    
+    // 切换内容网格显示状态
+    grid.classList.toggle('collapsed');
+    if (grid.classList.contains('collapsed')) {
+      grid.style.display = 'none';
+    } else {
+      grid.style.display = 'grid';
+    }
+    
+    // 切换左右箭头显示状态
+    const arrowButtons = document.querySelectorAll('.content-controls');
+    arrowButtons.forEach(button => {
+      button.classList.toggle('collapsed');
+      if (button.classList.contains('collapsed')) {
+        button.style.display = 'none';
+      } else {
+        button.style.display = 'flex';
+      }
+    });
+  });}
+const createRoleColumn=character=>{
+  const column=document.createElement('div');
+  column.className='glass-column role-column';
+  // 设置角色列样式以确保内容完全填充紫色边框
+  column.style.height = '100%';
+  column.style.display = 'block';
+  column.style.margin = '0';
+  column.style.padding = '0';
+  column.style.position = 'relative';
+  
+  // 创建图片容器并显示立绘.png
+  const imgContainer = document.createElement('div');
+  imgContainer.className = 'role-avatar-container';
+  // 设置容器样式以确保立绘完全填满整个终解头像框
+  imgContainer.style.width = '100%';
+  imgContainer.style.height = '100%';
+  imgContainer.style.overflow = 'hidden';
+  imgContainer.style.position = 'relative';
+  imgContainer.style.margin = '0';
+  imgContainer.style.padding = '0';
+  
+  // 创建Vue卡片样式结构
+  const card = document.createElement('div');
+  card.className = 'card';
+  
+  // 创建角色立绘图片（作为表层）
+  const img = document.createElement('img');
+  img.className = 'card__image';
+  img.src = character.dir + '/立绘.png'; 
+  img.alt = character.name + '立绘';
+  // 确保图片完全填满整个终解头像框
+  img.style.width = '100%';
+  img.style.height = '100%';
+  img.style.objectFit = 'cover';
+  img.style.objectPosition = 'center';
+  img.style.margin = '0';
+  img.style.padding = '0';
+  img.style.border = 'none';
+  
+  // 点击打开查看器
+  img.style.cursor = 'zoom-in';
+  img.addEventListener('click', e=>{ e.stopPropagation(); openImageViewer(img); });
+  
+  // 创建卡片内容（作为里层）
+  const cardContent = document.createElement('div');
+  cardContent.className = 'card__content';
+  
+  // 创建角色标题
+  const cardTitle = document.createElement('p');
+  cardTitle.className = 'card__title';
+  cardTitle.textContent = character.name;
+  
+  // 创建角色描述（从简介.txt获取）
+  const cardDescription = document.createElement('p');
+  cardDescription.className = 'card__description';
+  fetchIntro(character.intro).then(text => {
+    cardDescription.textContent = text;
+  });
+  
+  // 组装卡片内容
+  cardContent.appendChild(cardTitle);
+  cardContent.appendChild(cardDescription);
+  
+  // 组装卡片（图片作为表层，内容作为里层）
+  card.appendChild(img);
+  card.appendChild(cardContent);
+  
+  imgContainer.appendChild(card);
+  column.appendChild(imgContainer);
+  return column;
+}
+const createSkinColumn=character=>{
+  const column=document.createElement('div');
+  column.className='glass-column skin-column';
+  // 设置角色列样式以确保内容完全填充边框
+  column.style.height = '100%';
+  column.style.display = 'block';
+  column.style.margin = '0';
+  column.style.padding = '0';
+  column.style.position = 'relative';
+  
+  // 创建图片容器并显示涂装图片
+  const items = character.skins || [];
+  
+  // 如果没有素材，显示占位文本
+  if(items.length === 0){
+    const empty = document.createElement('p'); 
+    empty.className = 'intro-text'; 
+    empty.textContent = '暂无涂装'; 
+    column.append(empty);
+  } else {
+    // 创建仿 React Card 风格的容器
+    const card = document.createElement('div');
+    card.className = 'skin-card';
+    // 设置card样式以确保填满整个框
+    card.style.height = '100%';
+    card.style.width = '100%';
+    
+    items.forEach((skin, idx)=>{
+      const p = document.createElement('p');
+      // 确保每个p元素占据适当空间
+      p.style.height = '100%';
+      
+      const img = document.createElement('img');
+      img.src = skin.file; 
+      img.alt = skin.title || ('涂装 ' + (idx+1));
+      // 确保图片完全填满容器
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.objectFit = 'cover';
+      img.style.objectPosition = 'center';
+      img.style.display = 'block';
+      img.style.margin = '0';
+      img.style.padding = '0';
+      img.style.border = 'none';
+      
+      // 点击打开查看器
+      img.style.cursor = 'zoom-in';
+      img.addEventListener('click', e=>{ e.stopPropagation(); openImageViewer(img); });
+      
+      p.appendChild(img);
+      card.appendChild(p);
+    });
+    
+    column.append(card);
+  }
+
+  return column;
+}
+const createFanartColumn=character=>{
+  const column=document.createElement('div');
+  column.className='glass-column fanart-column';
+  // 去掉文字标题
+  
+  // 设置列样式以确保内容完全填充边框
+  column.style.height = '100%';
+  column.style.display = 'block';
+  column.style.margin = '0';
+  column.style.padding = '0';
+  column.style.position = 'relative';
+  column.style.overflow = 'hidden';
+  
+  // 创建轮播容器
+  const carousel = document.createElement('div');
+  carousel.className = 'fanart-carousel';
+  carousel.style.width = '100%';
+  carousel.style.height = '100%';
+  carousel.style.position = 'relative';
+  carousel.style.overflow = 'hidden';
+  carousel.style.background = 'transparent';
+  
+  // 添加背景图片
+  const backgroundImg = document.createElement('img');
+  backgroundImg.src = '组件/5.png';
+  backgroundImg.alt = '背景图片';
+  backgroundImg.style.position = 'absolute';
+  backgroundImg.style.top = '0';
+  backgroundImg.style.left = '0';
+  backgroundImg.style.width = '100%';
+  backgroundImg.style.height = '100%';
+  backgroundImg.style.objectFit = 'cover';
+  backgroundImg.style.opacity = '0.3';
+  backgroundImg.style.zIndex = '0';
+  backgroundImg.style.filter = 'blur(2px)';
+  carousel.appendChild(backgroundImg);
+  
+  // 获取同人图片数据
+  const fanarts = character.fanarts || [];
+  
+  console.log(`角色 ${character.name} 的同人图片数量: ${fanarts.length}`);
+  console.log(`同人图片列表:`, fanarts);
+  
+  if (fanarts.length === 0) {
+    // 如果没有同人图片，显示占位文本
+    const empty = document.createElement('p');
+    empty.textContent = '暂无同人图片';
+    empty.style.position = 'absolute';
+    empty.style.top = '50%';
+    empty.style.left = '50%';
+    empty.style.transform = 'translate(-50%, -50%)';
+    empty.style.color = '#777';
+    empty.style.fontSize = '14px';
+    carousel.appendChild(empty);
+  } else {
+    // 创建图片容器
+    const imgContainer = document.createElement('div');
+    imgContainer.className = 'fanart-images';
+    imgContainer.style.width = '100%';
+    imgContainer.style.height = '100%';
+    imgContainer.style.position = 'relative';
+    imgContainer.style.transition = 'transform 0.5s ease-in-out';
+    imgContainer.style.zIndex = '1';
+    
+    // 添加同人图片
+    fanarts.forEach((fanart, index) => {
+      console.log(`添加同人图片 ${index + 1}: ${fanart.file}`);
+      
+      const imgWrapper = document.createElement('div');
+      imgWrapper.className = 'fanart-image-wrapper';
+      imgWrapper.style.width = '100%';
+      imgWrapper.style.height = '100%';
+      imgWrapper.style.position = 'absolute';
+      imgWrapper.style.top = `${index * 100}%`;
+      imgWrapper.style.left = '0';
+      imgWrapper.style.display = 'flex';
+      imgWrapper.style.alignItems = 'center';
+      imgWrapper.style.justifyContent = 'center';
+      imgWrapper.style.background = 'transparent';
+      
+      const img = document.createElement('img');
+      img.src = fanart.file;
+      img.alt = fanart.title || `同人 ${index + 1}`;
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '100%';
+      img.style.objectFit = 'contain';
+      
+      // 添加图片加载失败处理
+      img.onerror = function() {
+        console.error(`图片加载失败: ${fanart.file}`);
+        this.style.display = 'none';
+        // 显示加载失败提示
+        const errorText = document.createElement('p');
+        errorText.textContent = '图片加载失败';
+        errorText.style.color = '#ff0000';
+        errorText.style.fontSize = '14px';
+        imgWrapper.appendChild(errorText);
+      };
+      
+      // 点击打开查看器
+      img.style.cursor = 'zoom-in';
+      img.addEventListener('click', e => {
+        e.stopPropagation();
+        openImageViewer(img);
+      });
+      
+      imgWrapper.appendChild(img);
+      imgContainer.appendChild(imgWrapper);
+    });
+    
+    // 添加轮播控制
+    let currentIndex = 0;
+    const totalImages = fanarts.length;
+    
+    // 鼠标滚轮控制
+    carousel.addEventListener('wheel', e => {
+      e.preventDefault();
+      if (e.deltaY > 0) {
+        // 向下滚动，显示下一张
+        currentIndex = (currentIndex + 1) % totalImages;
+      } else {
+        // 向上滚动，显示上一张
+        currentIndex = (currentIndex - 1 + totalImages) % totalImages;
+      }
+      imgContainer.style.transform = `translateY(-${currentIndex * 100}%)`;
+    });
+    
+    carousel.appendChild(imgContainer);
+  }
+  
+  column.appendChild(carousel);
+  return column;
+}
+let __gtrack_counter = 0;
+const createGlassTrack=dataList=>{
+  const track=document.createElement('div');
+  track.className='glass-track';
+  // assign a stable id so viewer can find sibling images
+  track.dataset.trackId = 'gtrack-' + (__gtrack_counter++);
+  dataList.forEach((item,index)=>{
+    const glass=document.createElement('div');glass.className=`glass ${item.type||''}-glass`.trim();
+    const rotation=-15+index*15;glass.style.setProperty('--r',rotation);
+    const img=document.createElement('img');img.src=item.file;img.alt=item.label||'展示图片';
+    // index on the glass helps navigation
+    glass.dataset.index = index;
+    glass.appendChild(img);
+
+    // 仅对涂装图片添加点击进入全屏查看的交互：先滚动到轨道中心，再打开查看器
+    if((item.type||'').toLowerCase()==='skin'){
+      img.style.cursor='zoom-in';
+      img.addEventListener('click', e=>{ e.stopPropagation(); scrollToCenterThenOpen(img); });
+    }
+    track.appendChild(glass);
+  });
+  if(!dataList.length){const empty=document.createElement('p');empty.className='intro-text';empty.textContent='暂无素材';track.appendChild(empty)}
+  return track
+}
+
+// Helper: smooth scroll track so the clicked glass is centered, then open viewer
+function scrollToCenterThenOpen(imgEl){
+  const track = imgEl.closest('.glass-track'); if(!track){ openImageViewer(imgEl); return; }
+  const tr = track.getBoundingClientRect();
+  const gr = imgEl.closest('.glass').getBoundingClientRect();
+  const offset = (gr.left + gr.width/2) - (tr.left + tr.width/2);
+  // perform smooth scroll
+  try{ track.scrollBy({left: offset, behavior: 'smooth'}); }catch(e){ track.scrollLeft += offset; }
+  // wait for scroll to settle (based on distance) then open viewer from the new position
+  const waitMs = Math.min(700, Math.max(220, Math.abs(offset) * 0.6));
+  setTimeout(()=> openImageViewer(imgEl), waitMs);
+}
+const createTagList=labels=>{const tagList=document.createElement('div');tagList.className='glass-taglist';if(!labels.length){const tag=document.createElement('span');tag.className='glass-tag';tag.textContent='暂无素材';tagList.appendChild(tag);return tagList}labels.forEach(label=>{const tag=document.createElement('span');tag.className='glass-tag';tag.textContent=label;tagList.appendChild(tag)});return tagList}
+document.querySelectorAll('.flippable-card .card-back').forEach(buildCardBack)
+document.querySelectorAll('.flippable-card').forEach(card=>{
+  card.dataset.locked='false';
+  // Only flip on click. Remove hover-to-flip behavior.
+  card.addEventListener('click',()=>{
+    const flipped = card.classList.toggle('is-flipped');
+    card.dataset.locked = flipped ? 'true' : 'false';
+    
+    // Control front video playback based on flip state
+    const frontVideo = card.querySelector('.card-front video');
+    if (frontVideo) {
+      if (flipped) {
+        // Card is flipped to back, pause front video
+        frontVideo.pause();
+      } else {
+        // Card is flipped back to front, play front video
+        frontVideo.play().catch(()=>{});
+      }
+    }
+  });
+});
+</script>
+<script>
+// 中间卡片放大逻辑：在每个 .glass-track 中检测中心最近的 .glass，并添加 .is-center
+(function(){
+  function updateCenters(){
+    document.querySelectorAll('.glass-track').forEach(track=>{
+      const trackRect = track.getBoundingClientRect();
+      const centerX = trackRect.left + trackRect.width / 2;
+      let closest = null; let minDist = Infinity;
+      Array.from(track.querySelectorAll('.glass')).forEach(g=>{
+        const r = g.getBoundingClientRect();
+        const gx = r.left + r.width/2;
+        const dist = Math.abs(gx - centerX);
+        if(dist < minDist){ minDist = dist; closest = g }
+      });
+      track.querySelectorAll('.glass').forEach(g=> g.classList.toggle('is-center', g === closest));
+    });
+  }
+
+  let raf = null;
+  document.querySelectorAll('.glass-track').forEach(track=>{
+    track.addEventListener('scroll', ()=>{ if(raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(updateCenters); });
+    // 点击某个 glass 时，平滑滚动使其居中（可选交互）
+    track.addEventListener('click', e=>{
+      const g = e.target.closest('.glass');
+      if(!g) return;
+      const tr = track.getBoundingClientRect();
+      const gr = g.getBoundingClientRect();
+      const offset = (gr.left + gr.width/2) - (tr.left + tr.width/2);
+      track.scrollBy({left: offset, behavior: 'smooth'});
+    });
+  });
+
+  window.addEventListener('resize', ()=>{ if(raf) cancelAnimationFrame(raf); raf = requestAnimationFrame(updateCenters); });
+  document.addEventListener('DOMContentLoaded', ()=>{ updateCenters(); });
+  // 也在脚本执行时初始化一次（文件可能已加载）
+  setTimeout(updateCenters, 120);
+})();
+</script>
+<script>
+// 全屏查看器（FLIP 风格动画）
+// viewer 配置（可调）
+const viewerConfig = {
+  revertOnClose: false, // true = shrink back to origin; false = fade overlay
+  animationDuration: 320, // ms for image transitions
+  scrollWaitBase: 360, // ms baseline wait after scroll before opening
+  swipeThreshold: 50
+};
+
+function openImageViewer(imgEl){
+  if(document.querySelector('.image-viewer')) return;
+  const track = imgEl.closest('.glass-track');
+  const images = track ? Array.from(track.querySelectorAll('.glass img')) : [imgEl];
+  let currentIndex = imgEl.closest('.glass') ? parseInt(imgEl.closest('.glass').dataset.index || 0) : 0;
+
+  const body = document.body;
+  const overlay = document.createElement('div'); overlay.className='image-viewer';
+  const closeBtn = document.createElement('div'); closeBtn.className='fv-close'; closeBtn.innerHTML='✕'; overlay.appendChild(closeBtn);
+  // initial clone (will be replaced on nav)
+  const clone = document.createElement('img'); clone.className='fv-img'; clone.src = images[currentIndex].src;
+  overlay.appendChild(clone);
+  document.documentElement.appendChild(overlay);
+  const prevOverflow = body.style.overflow; body.style.overflow='hidden';
+
+  // apply transition durations
+  clone.style.transition = `all ${viewerConfig.animationDuration}ms ease`;
+
+  // animate from source position (FLIP start)
+  const startRect = images[currentIndex].getBoundingClientRect();
+  clone.style.left = startRect.left + 'px'; clone.style.top = startRect.top + 'px';
+  clone.style.width = startRect.width + 'px'; clone.style.height = startRect.height + 'px';
+  clone.style.borderRadius = window.getComputedStyle(images[currentIndex]).borderRadius || '8px';
+
+  requestAnimationFrame(()=>{
+    overlay.classList.add('show');
+    // 移除所有强制尺寸和位置设置，让CSS控制图片的缩放和居中
+    clone.style.borderRadius = '6px';
+    clone.style.objectFit = 'contain'; // 保持图片比例
+    // 移除所有可能干扰CSS缩放的位置和尺寸设置
+    clone.style.left = '';
+    clone.style.top = '';
+    clone.style.width = '';
+    clone.style.height = '';
+  });
+
+  // navigation helpers
+  function showIndex(newIndex, direction){
+    if(newIndex < 0 || newIndex >= images.length) return;
+    const nextImg = document.createElement('img'); nextImg.className = 'fv-img'; nextImg.src = images[newIndex].src;
+    nextImg.style.opacity = 0; 
+    nextImg.style.borderRadius = '6px';
+    nextImg.style.transition = `opacity ${viewerConfig.animationDuration}ms ease`;
+    // 不设置位置和尺寸，让CSS控制缩放和居中
+    overlay.appendChild(nextImg);
+    requestAnimationFrame(()=> nextImg.style.opacity = 1);
+    // remove previous clone after fade
+    setTimeout(()=>{ if(clone.parentNode) clone.parentNode.removeChild(clone); }, viewerConfig.animationDuration);
+    // replace reference
+    clone.src = nextImg.src; // reuse reference for subsequent ops
+    if(nextImg.parentNode) nextImg.parentNode.removeChild(nextImg);
+    currentIndex = newIndex;
+  }
+
+  // swipe handling
+  let touchX = null; let touchLocked = false;
+  overlay.addEventListener('touchstart', e=>{ if(e.touches && e.touches[0]) touchX = e.touches[0].clientX; }, {passive:true});
+  overlay.addEventListener('touchmove', e=>{ if(!touchX || touchLocked) return; const dx = e.touches[0].clientX - touchX; if(Math.abs(dx) > viewerConfig.swipeThreshold){ touchLocked = true; if(dx < 0) showIndex(currentIndex+1, 'left'); else showIndex(currentIndex-1, 'right'); setTimeout(()=>{ touchLocked=false; touchX=null; }, 300); } }, {passive:true});
+
+  function onKey(e){ if(e.key==='Escape') close(); if(e.key==='ArrowRight') showIndex(currentIndex+1); if(e.key==='ArrowLeft') showIndex(currentIndex-1); }
+
+  function close(){
+    document.removeEventListener('keydown', onKey);
+    if(viewerConfig.revertOnClose){
+      // animate back to original element position
+      const srcEl = images[currentIndex];
+      const rect2 = srcEl.getBoundingClientRect();
+      clone.style.left = rect2.left + 'px'; clone.style.top = rect2.top + 'px';
+      clone.style.width = rect2.width + 'px'; clone.style.height = rect2.height + 'px';
+      overlay.classList.remove('show');
+      clone.addEventListener('transitionend', ()=>{ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); body.style.overflow = prevOverflow || ''; }, {once:true});
+    } else {
+      // fade out overlay (or shrink inside the column if it was a skin target)
+      // apply a gentle fade to the overlay and remove the clone immediately
+      overlay.classList.remove('show');
+      const onEnd = ()=>{ if(overlay.parentNode) overlay.parentNode.removeChild(overlay); body.style.overflow = prevOverflow || ''; overlay.removeEventListener('transitionend', onEnd); };
+      overlay.addEventListener('transitionend', onEnd);
+    }
+  }
+
+  overlay.addEventListener('click', e=>{ if(e.target === overlay) close(); });
+  closeBtn.addEventListener('click', close);
+  document.addEventListener('keydown', onKey);
+}
+</script>
+
+<!-- 自动插入卡面视频（静音自动播放、不可交互；点击卡面暂停视频） -->
+<script>
+  (function(){
+    const map = [
+      {selector: '.panel.panel-video .card-front', src: '红莲/卡面.mp4'},
+      {selector: '.panel.panel-audio .card-front', src: '深红囚影/卡面.mp4'},
+      {selector: '.panel.panel-gallery .card-front', src: '深红之渊/卡面.mp4'}
+    ];
+
+    map.forEach(item=>{
+      const el = document.querySelector(item.selector);
+      if(!el) return;
+      // 如果已有 video，跳过
+      if(el.querySelector('video')) return;
+
+      const video = document.createElement('video');
+      video.src = item.src;
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.loop = true;
+      video.preload = 'auto';
+      video.controls = false;
+      video.tabIndex = -1;
+      video.setAttribute('aria-hidden','true');
+      video.style.pointerEvents = 'none';
+      video.addEventListener('contextmenu', e=>e.preventDefault());
+
+      // insert as first child so it sits behind UI elements if any
+      el.insertBefore(video, el.firstChild);
+
+      // try to play (some browsers require user gesture unless muted)
+      video.play().catch(()=>{});
+
+      // 点击卡面暂停视频（仅执行暂停，不提供恢复）
+      el.addEventListener('click', ()=>{
+        try{ if(!video.paused) video.pause(); }catch(e){}
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>

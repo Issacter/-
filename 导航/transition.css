@@ -1,0 +1,66 @@
+/* 碎片容器 */
+.shards-container {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* 单个碎片 */
+.shard {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    will-change: transform, opacity;
+    /* 初始状态不偏移 */
+    transform: translate(0, 0) rotate(0);
+}
+
+/* 碎片内的内容副本 */
+.shard-inner {
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    /* 保持原样显示 */
+}
+
+/* 冻结碎片内的所有动画和过渡 */
+.shard-inner * {
+    animation-play-state: paused !important;
+    transition: none !important;
+}
+
+/* 预加载下一页的iframe */
+#transition-iframe {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    z-index: 1; /* 在视频背景之上，原内容之下 */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none; /* 过渡期间不可交互 */
+}
+
+/* 碎片下落动画 */
+@keyframes shatter-drop {
+    0% {
+        transform: translate3d(0, 0, 0) rotate3d(0, 0, 0, 0);
+        opacity: 1;
+        /* 添加从中心开始的缩放效果 */
+        clip-path: polygon(50% 50%, 50% 50%, 50% 50%, 50% 50%);
+    }
+    20% {
+        /* 逐渐显示完整的碎片形状 */
+        clip-path: var(--original-clip);
+    }
+    100% {
+        transform: translate3d(var(--tx), var(--ty), 0) rotate3d(var(--rx), var(--ry), var(--rz), var(--deg));
+        opacity: 0;
+        clip-path: var(--original-clip);
+    }
+}

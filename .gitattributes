@@ -1,0 +1,22 @@
+# 统一以 LF 存储，检出时按平台自动转换
+* text=auto
+
+# 明确二进制资源，避免被当作文本处理
+*.jpg  binary
+*.jpeg binary
+*.png  binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.mp4  binary
+*.flac binary
+*.mp3  binary
+*.wav  binary
+
+# 文本文件使用 LF
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf

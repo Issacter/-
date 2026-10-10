@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>露西亚 — 构造体档案</title>
+  <style>
+    /* --- 全局变量与基础设置 --- */
+    :root {
+      --main-color: #e74c3c; /* 露西亚红 */
+      --accent-color: #2c3e50;
+      --text-color: #ecf0f1;
+      --sidebar-width: 320px;
+      --bg-color: #111;
+    }
+    
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: "Microsoft Yahei", "Segoe UI", Arial, sans-serif;
+      background-color: transparent;
+      color: rgba(255, 255, 255, 0.8); /* 半透明文字 */
+      overflow: hidden; /* 防止双重滚动 */
+    }
+
+    /* 动态背景图 */
+    #bg-layer {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: -1;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: brightness(1); /* 增加亮度以便更清楚地看到背景 */
+      transition: background-image 0.5s ease;
+    }
+
+    /* --- 布局容器 --- */
+    .layout-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      background: transparent;
+    }
+
+    /* --- 左侧边栏 (原介绍框) --- */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: rgba(0, 0, 0, 0.3); /* 半透明背景 */
+      border-right: 1px solid rgba(231, 76, 60, 0.3);
+      backdrop-filter: blur(5px);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+      z-index: 10;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--main-color); border-radius: 2px; }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+      opacity: 0.8;
+    }
+    .logo-img {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid var(--main-color);
+    }
+
+    /* 故障文字效果 CSS (保留并优化) */
+    .glitch {
+      font-size: 32px;
+      font-weight: bold;
+      text-transform: uppercase;
+      position: relative;
+      text-shadow: 0 0 10px rgba(231, 76, 60, 0.8);
+      opacity: 0.9;
+      animation: glitch 3s infinite;
+    }
+    
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0.8;
+    }
+
+    .glitch::before {
+      color: #0ff;
+      z-index: -1;
+      animation: glitch-anim-1 2s infinite linear alternate-reverse;
+    }
+
+    .glitch::after {
+      color: #f00;
+      z-index: -2;
+      animation: glitch-anim-2 3s infinite linear alternate-reverse;
+    }
+
+    @keyframes glitch {
+      0% { text-shadow: 0.05em 0 0 rgba(255,0,0,0.75), -0.05em -0.025em 0 rgba(0,255,0,0.75), -0.025em 0.05em 0 rgba(0,0,255,0.75); }
+      14% { text-shadow: 0.05em 0 0 rgba(255,0,0,0.75), -0.05em -0.025em 0 rgba(0,255,0,0.75), -0.025em 0.05em 0 rgba(0,0,255,0.75); }
+      15% { text-shadow: -0.05em -0.025em 0 rgba(255,0,0,0.75), 0.025em 0.025em 0 rgba(0,255,0,0.75), -0.05em -0.05em 0 rgba(0,0,255,0.75); }
+      49% { text-shadow: -0.05em -0.025em 0 rgba(255,0,0,0.75), 0.025em 0.025em 0 rgba(0,255,0,0.75), -0.05em -0.05em 0 rgba(0,0,255,0.75); }
+      50% { text-shadow: 0.025em 0.05em 0 rgba(255,0,0,0.75), 0.05em 0 0 rgba(0,255,0,0.75), 0 -0.05em 0 rgba(0,0,255,0.75); }
+      99% { text-shadow: 0.025em 0.05em 0 rgba(255,0,0,0.75), 0.05em 0 0 rgba(0,255,0,0.75), 0 -0.05em 0 rgba(0,0,255,0.75); }
+      100% { text-shadow: -0.025em 0 0 rgba(255,0,0,0.75), -0.025em -0.025em 0 rgba(0,255,0,0.75), -0.025em -0.05em 0 rgba(0,0,255,0.75); }
+    }
+
+    @keyframes glitch-anim-1 {
+      0% { clip-path: inset(80% 0 0 0); transform: translate(-2px, 1px); }
+      20% { clip-path: inset(10% 0 60% 0); transform: translate(2px, -1px); }
+      40% { clip-path: inset(50% 0 30% 0); transform: translate(-2px, 2px); }
+      60% { clip-path: inset(0 0 80% 0); transform: translate(2px, -2px); }
+      80% { clip-path: inset(30% 0 10% 0); transform: translate(-1px, 1px); }
+      100% { clip-path: inset(70% 0 0 0); transform: translate(1px, -1px); }
+    }
+
+    @keyframes glitch-anim-2 {
+      0% { clip-path: inset(10% 0 60% 0); transform: translate(2px, -1px); }
+      20% { clip-path: inset(80% 0 0 0); transform: translate(-2px, 2px); }
+      40% { clip-path: inset(30% 0 20% 0); transform: translate(2px, 1px); }
+      60% { clip-path: inset(10% 0 80% 0); transform: translate(-1px, -2px); }
+      80% { clip-path: inset(40% 0 10% 0); transform: translate(1px, 2px); }
+      100% { clip-path: inset(0 0 50% 0); transform: translate(-2px, -1px); }
+    }
+
+    .subtitle { color: rgba(231, 76, 60, 0.8); font-size: 12px; letter-spacing: 1px; margin-top: 4px; }
+
+    .avatar-box {
+      width: 100%;
+      height: 300px;
+      overflow: hidden;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      background: transparent;
+      border: 1px solid rgba(231, 76, 60, 0.5);
+      opacity: 0.8;
+    }
+    .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
+
+    .info-section { margin-bottom: 24px; line-height: 1.6; font-size: 14px; opacity: 0.9; }
+    .section-title {
+      font-size: 16px; font-weight: bold; color: rgba(231, 76, 60, 0.9);
+      border-bottom: 1px solid rgba(231, 76, 60, 0.5);
+      padding-bottom: 4px; margin-bottom: 10px;
+    }
+    strong { color: rgba(231, 76, 60, 0.9); }
+
+    /* --- 右侧主要内容区 --- */
+    .main-content {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+
+
+
+    /* 视频播放器区域 (已修改) */
+    .video-section {
+      width: 100%;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.2); /* 半透明背景 */
+      border-top: 1px solid rgba(231, 76, 60, 0.3);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 20px;
+      padding: 10px;
+      box-sizing: border-box;
+      backdrop-filter: blur(3px);
+    }
+
+    .video-wrapper {
+      width: calc(100% - 270px); /* 减去侧边栏宽度和间距 */
+      max-width: none;
+      height: 90vh;
+      background: rgba(0, 0, 0, 0.4); /* 半透明背景 */
+      border: 1px solid rgba(231, 76, 60, 0.4);
+      border-radius: 6px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      position: relative;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .video-wrapper:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    /* 视频响应式调整 */
+    video {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+      object-fit: cover;
+      opacity: 0.8;
+    }
+
+    .video-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 100%;
+      overflow-y: auto;
+      opacity: 0.9;
+    }
+
+    .video-btn {
+      background: transparent;
+      border: none;
+      color: var(--main-color);
+      padding: 8px 16px;
+      font-family: inherit;
+      font-size: 14px; /* 字体略微增大 */
+      cursor: pointer;
+      transition: all 0.3s;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      width: 250px; /* 按钮略微加宽 */
+      letter-spacing: 1px;
+    }
+
+    .video-btn:hover, .video-btn.active {
+      background: rgba(231, 76, 60, 0.2);
+      color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+      transform: translateY(-2px);
+    }
+    .video-btn.active {
+        font-weight: bold;
+    }
+    .video-btn::before {
+      content: ''; position: absolute; left: 0; top: 0; width: 4px; height: 100%; background: transparent;
+      transform: scaleY(0); transition: transform 0.2s;
+    }
+    .video-btn:hover::before { transform: scaleY(1); }
+
+    /* 响应式调整 */
+    @media(max-width: 900px) {
+      .layout-container { flex-direction: column; overflow-y: auto; }
+      .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 1px solid #333; }
+      #gallery-container { height: 50vh; }
+      .video-section { flex-direction: column; height: auto; padding: 20px; }
+      .video-wrapper { width: 100%; max-width: 480px; height: auto; aspect-ratio: 16/9; }
+      .video-controls { width: 100%; max-width: 480px; }
+      .video-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+    <div id="bg-layer"></div>
+    
+    <!-- 开场动画 -->
+    <div id="intro-animation" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+      <video id="introVideo" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; max-width: none; max-height: none;">
+        <source src="视频/【战双丨露西亚·誓焰息屏动画】 copy.mp4" type="video/mp4">
+        您的浏览器不支持 HTML5 视频。
+      </video>
+    </div>
+
+  <div class="layout-container">
+    <aside class="sidebar">
+      <div class="logo-area">
+        <div class="logo-img">
+            <img src="图片/表情包/2.png" style="width:100%;height:100%;object-fit:cover" alt="Logo">
+        </div>
+        <div>
+          <h1 class="glitch" data-text="LUCIA">LUCIA</h1>
+          <div class="subtitle">GRAY RAVEN LEADER</div>
+        </div>
+      </div>
+
+      <div class="avatar-box">
+        <img src="图片/同人/4.png" alt="露西亚 头像" />
+      </div>
+
+      <div class="info-section">
+        <div class="section-title">机体参数</div>
+        <p><strong>机体型号：</strong>露西亚 (Lucia)</p>
+        <p><strong>所属部队：</strong>灰鸦小队 (Gray Raven)</p>
+        <p><strong>机体类型：</strong>进攻型 / 军用构造体</p>
+        <p><strong>特质：</strong>双马尾、红围巾、蛙类玩偶爱好者</p>
+      </div>
+
+      <div class="info-section">
+        <div class="section-title">作战履历</div>
+        <p>露西亚是空中花园早期批次改造的军用构造体。她性格认真执着，在经历了与妹妹露娜的生离死别、记忆封存与多次机体重生（红莲 -> 黎明 -> 鸦羽 -> 誓焰）后，依然选择为了守护人类与指挥官而战。</p>
+        <p>在九龙战役与红潮危机中，她展现了超越机体极限的意志力。</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- 鼠标跟随图片轨迹容器 -->
+        <div id="image-trail-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; opacity: 1;">
+            <!-- 图片将通过JavaScript动态创建 -->
+        </div>
+      <div class="video-section">
+        <div class="video-wrapper">
+          <video id="charVideo" src="视频/【战双丨露西亚·誓焰息屏动画】 copy.mp4" autoplay muted loop controls>
+            <source src="视频/【战双丨露西亚·誓焰息屏动画】 copy.mp4" type="video/mp4">
+            您的浏览器不支持 HTML5 视频。
+          </video>
+        </div>
+        <div class="video-controls">
+          <button class="video-btn active" onclick="switchVideo(0)">
+            ▶ 誓焰息屏动画
+          </button>
+          <button class="video-btn" onclick="switchVideo(1)">
+            ▶ 誓焰丨终点 (剧情过场)
+          </button>
+          <button class="video-btn" onclick="switchVideo(2)">
+            ▶ 纺时为茧 (角色动画短片)
+          </button>
+          <button class="video-btn" onclick="switchVideo(3)">
+            ▶ 舞蹈 (Fanwork)
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // 开场动画控制
+    (() => {
+      const introAnimation = document.getElementById('intro-animation');
+      const introVideo = document.getElementById('introVideo');
+      
+      // 视频播放完成后隐藏开场动画
+      introVideo.addEventListener('ended', () => {
+        // 添加淡出过渡效果
+        introAnimation.style.transition = 'opacity 1s ease-out';
+        introAnimation.style.opacity = '0';
+        
+        // 动画结束后彻底隐藏
+        setTimeout(() => {
+          introAnimation.style.display = 'none';
+        }, 1000);
+      });
+      
+      // 允许用户点击跳过动画
+      introAnimation.addEventListener('click', () => {
+        introVideo.pause();
+        introAnimation.style.transition = 'opacity 0.5s ease-out';
+        introAnimation.style.opacity = '0';
+        
+        setTimeout(() => {
+          introAnimation.style.display = 'none';
+        }, 500);
+      });
+    })();
+    
+    // 随机背景图片功能
+    (() => {
+      const backgrounds = ['图片/背景.jpg', '图片/背景1.jpg'];
+      const bgLayer = document.getElementById('bg-layer');
+      bgLayer.style.backgroundImage = `url('${backgrounds[Math.floor(Math.random() * backgrounds.length)]}')`;
+    })();
+
+    // 视频切换逻辑
+    const videoSources = [
+      "视频/【战双丨露西亚·誓焰息屏动画】 copy.mp4",
+      "视频/【战双帕弥什】露西亚·誓焰丨终点（附剧情动态CG）_P1_剧情过场动画 ——「终点」.mp4",
+      "视频/【战双帕弥什】纺时为茧 _ 露西亚·誓焰角色动画短片.mp4",
+      "视频/舞蹈.mp4"
+    ];
+    
+    function switchVideo(index) {
+      const video = document.getElementById('charVideo');
+      const btns = document.querySelectorAll('.video-btn');
+      
+      video.src = videoSources[index];
+      video.load();
+      video.play();
+
+      btns.forEach((btn, i) => {
+        if(i === index) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+    }
+
+    // 图片路径数组
+      const imagePaths = [
+        '图片/同人/1.jpg',
+        '图片/同人/2.jpg',
+        '图片/同人/3.png',
+        '图片/同人/4.png',
+        '图片/同人/5.jpg',
+        '图片/同人/6.png',
+        '图片/同人/7.jpg',
+        '图片/同人/8.jpg',
+        '图片/同人/9.jpg',
+        '图片/同人/10.jpg',
+        '图片/同人/11.jpg',
+        '图片/同人/12.jpg',
+        '图片/同人/13.jpg',
+        '图片/同人/15.jpg',
+        '图片/同人/16.jpg',
+        '图片/同人/17.jpg',
+        '图片/同人/18.jpg',
+        '图片/同人/19.jpg',
+        '图片/同人/20.png',
+        '图片/同人/21.jpg',
+        '图片/同人/22.jpg',
+        '图片/同人/23.jpg',
+        '图片/同人/24.jpg',
+        '图片/同人/25.png',
+        '图片/同人/26.jpg',
+        '图片/同人/27.jpg',
+        '图片/同人/28.jpg'
+      ];
+
+      // 辅助函数
+      function lerp(a, b, n) {
+        return (1 - n) * a + n * b;
+      }
+
+      function getMouseDistance(p1, p2) {
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        return Math.hypot(dx, dy);
+      }
+
+      // 图片项类
+      class ImageItem {
+        DOM = { el: null, inner: null };
+        defaultStyle = { scale: 1, x: 0, y: 0, opacity: 0 };
+        rect = null;
+
+        constructor(DOM_el) {
+          this.DOM.el = DOM_el;
+          this.DOM.inner = this.DOM.el;
+          this.getRect();
+          this.initEvents();
+        }
+
+        initEvents() {
+          this.resize = () => {
+            this.getRect();
+          };
+          window.addEventListener('resize', this.resize);
+        }
+
+        getRect() {
+          this.rect = this.DOM.el.getBoundingClientRect();
+        }
+      }
+
+      // 图片轨迹主类
+      class ImageTrail {
+        constructor(container, imagePaths, options = {}) {
+          this.container = container;
+          this.imagePaths = imagePaths;
+          this.options = {
+            threshold: 50, // 鼠标移动阈值，超过这个距离才生成新图片
+            maxImages: 8, // 最大显示图片数量
+            imageSize: 80, // 图片大小
+            ...options
+          };
+
+          this.images = [];
+          this.imagesTotal = 0;
+          this.imgPosition = 0;
+          this.zIndexVal = 1;
+          this.activeImagesCount = 0;
+          this.isIdle = true;
+
+          this.mousePos = { x: 0, y: 0 };
+          this.lastMousePos = { x: 0, y: 0 };
+          this.cacheMousePos = { x: 0, y: 0 };
+
+          this.init();
+        }
+
+        init() {
+          for (let i = 0; i < this.options.maxImages; i++) {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'content__img';
+            imgContainer.style.cssText = `
+              width: ${this.options.imageSize}px;
+              height: ${this.options.imageSize}px;
+              position: fixed;
+              top: 0;
+              left: 0;
+              opacity: 0;
+              pointer-events: none;
+              z-index: 9999;
+              border-radius: 12px;
+              overflow: hidden;
+              will-change: transform, filter;
+            `;
+
+            const img = document.createElement('img');
+            img.src = this.imagePaths[i % this.imagePaths.length];
+            img.style.cssText = `
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+              border-radius: 12px;
+            `;
+
+            imgContainer.appendChild(img);
+            this.container.appendChild(imgContainer);
+            this.images.push(new ImageItem(imgContainer));
+          }
+
+          this.imagesTotal = this.images.length;
+
+          // 绑定鼠标移动事件
+          const handlePointerMove = ev => {
+            this.mousePos = {
+              x: ev.clientX,
+              y: ev.clientY
+            };
+          };
+
+          document.addEventListener('mousemove', handlePointerMove);
+
+          // 初始化渲染循环
+          this.render();
+        }
+
+        render() {
+          let distance = getMouseDistance(this.mousePos, this.lastMousePos);
+          this.cacheMousePos.x = lerp(this.cacheMousePos.x, this.mousePos.x, 0.1);
+          this.cacheMousePos.y = lerp(this.cacheMousePos.y, this.mousePos.y, 0.1);
+
+          if (distance > this.options.threshold) {
+            this.showNextImage();
+            this.lastMousePos = { ...this.mousePos };
+          }
+
+          if (this.isIdle && this.zIndexVal !== 1) {
+            this.zIndexVal = 1;
+          }
+
+          requestAnimationFrame(() => this.render());
+        }
+
+        showNextImage() {
+          ++this.zIndexVal;
+          this.imgPosition = this.imgPosition < this.imagesTotal - 1 ? this.imgPosition + 1 : 0;
+          const img = this.images[this.imgPosition];
+
+          // 更新图片源
+          img.DOM.inner.src = this.imagePaths[this.imgPosition % this.imagePaths.length];
+
+          // 计算图片位置
+          const centerX = this.mousePos.x - img.rect.width / 2;
+          const centerY = this.mousePos.y - img.rect.height / 2;
+
+          // 使用CSS动画代替JavaScript动画，提高性能
+          img.DOM.el.style.cssText += `
+            opacity: 1;
+            scale: 1;
+            z-index: ${this.zIndexVal};
+            left: ${centerX}px;
+            top: ${centerY}px;
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+          `;
+
+          // 自动淡出
+          setTimeout(() => {
+            img.DOM.el.style.cssText += `
+              opacity: 0;
+              scale: 0.2;
+              transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            `;
+          }, 500);
+
+          this.onImageActivated();
+
+          // 延迟标记为非活动
+          setTimeout(() => {
+            this.onImageDeactivated();
+          }, 1000);
+        }
+
+        onImageActivated() {
+          this.activeImagesCount++;
+          this.isIdle = false;
+        }
+
+        onImageDeactivated() {
+          this.activeImagesCount--;
+          if (this.activeImagesCount === 0) {
+            this.isIdle = true;
+          }
+        }
+      }
+
+      // 初始化图片轨迹效果
+      document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('image-trail-container');
+        if (container) new ImageTrail(container, imagePaths);
+      });
+  </script>
+
+</body>
+</html>
